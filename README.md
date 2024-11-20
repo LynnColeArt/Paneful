@@ -1,27 +1,86 @@
+
 # Paneful
-Paneful is a set of procedural tools and utilities for making weirder ai art
 
-Concept: What if we could use stable diffusion to make wild segmentation collages based on your selfies or ai renders?
-Well, it's fun and easy (relatively easy) to do! It just takes a shit ton of pre and post-processing, which is necessary, because this kind of art is VERY difficult to do by hand.
+A modular Python toolkit for creating art from tiled images. Handles image slicing, reassembly, randomization, and artistic transformations.
 
-I'm actively writing these to make the process simpler.
+## Overview
 
-Okay, so... 
-I think these tools are obviously named, but here's some things you need to know about them.
+Paneful provides tools for:
+- Slicing images into grids
+- Reassembling tiles in original or randomized patterns
+- Creating Dadaist collages with text overlays
+- Managing multiple image variations and outputs
 
-* compressor.py - does what it says. Compresses your monster png files into much lighter jpegs. Runs on every image in a directory.
-* jpegger.py - same as compressor.py, come to think of it. Older, probably a candidate for depracation.
-* just-dither - takes every image in a directory, and dithers it, so you have noisier images to pass to the ai.
-* slicer.py - chops every image in a directory and creates a folder tree with slices of your image, and creates a series of cusomized inpainting masks with different border widths.
-* fixer.py - probably broken at the moment, but, reads a directory looking for slices, and re-assembles them, based on the changes that stable diffusion default makes to your naming convention.
-* webp-converter.py - webp is the most useless and annoying file format there is, well, second only to avif, which is even more annoying. This script converts your webp's into nice happy little png's.
-* randomize.py - probably also broken at the moment. This script takes a group of tiles, from a tiles directory, the same way fixer does. But, unlike fixer.py, it detects your groups of image variations from multiple slice directories,
-obeys the grid, and randomly selects every tile in that grid, so that you can build out a more randomized collage. It also takes a number input, meaning that you can tell it to create multiple variations of the collage.
+## Structure
+	root/
+	├── app/                    # Main application package
+	│   ├── functions/         # Core functionality
+	│   │   ├── base/         # Core utilities
+	│   │   ├── transform/    # Image transformation modules
+	│   │   └── overlay/      # Text and effect overlays
+	│   ├── ui/               # User interface modules
+	│   ├── fonts/            # Font resources
+	│   └── meaningless-words/ # Text resources
+	├── projects/              # Project data (not included)
+	├── main.py               # Application entry point
+	└── settings.cfg          # Configuration file
+## Installation 
+Clone the repository 
 
-## Todo:
+Install requirements: 
+```bash pip install -r requirements.txt```
 
-Fix fixer.py and randomize.py so that they work with the file trees that slicer.py is generating now.
-No big deal.
+## Configuration
 
-Releasing it this way, so you can play with the pieces.
+Create a settings.cfg file in the root directory:
 
+	projects_dir=projects
+	rendered_tile_size=600
+
+## Usage
+
+Run the application:
+`python main.py`
+
+Basic workflow:
+
+1.  Create a new project
+2.  Place source image in project's base-image directory
+3.  Slice image into grid
+4.  Use rendered tiles for assembly or artistic transformations
+
+## Features
+
+-   Grid-based image slicing
+-   Exact tile reassembly
+-   Random tile variation assembly
+-   Multiple output formats (PNG, JPEG)
+-   Directory-based project organization
+-   Text overlay capabilities
+
+## Project Structure
+
+Each project contains:
+
+	project_name/
+	├── base-image/       # Original images
+	├── base-tiles/       # Sliced tiles
+	├── rendered-tiles/   # Processed variations
+	├── mask-directory/   # Tile masks
+	└── collage-out/     # Final outputs
+		├── restored/    # Exact assemblies
+		└── randomized/  # Random variations
+
+## Todo
+
+Finish building out the basics, then 
+
+1. Video processing functionality. 
+2. Additional and more quirky types of Dadaism, including more conventional looking collages. 
+3. A Gradio UI 
+4. Integration with Comfy UI or Automatic for a one stop workflow.
+
+
+## Contributing
+
+We happily accept contributions of code, and or exotic donuts!
