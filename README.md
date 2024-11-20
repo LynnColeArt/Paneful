@@ -78,6 +78,7 @@ Finish building out the basics, then
 * Clean up the functions directory so it makes more sense, now that we know where we're going.
 * Refactor project structure, making it a little easier to follow. Thinking, something like this.
 
+
 	project_name/
 	├── batch_in/                    # Bulk input processing
 	├── batch_out/                   # Bulk output processing
@@ -85,6 +86,7 @@ Finish building out the basics, then
 	├── base_collage_tiles/          # Sliced tiles
 	├── rendered_collage_tiles_in/   # Rendered variations
 	└── rendered_collage_out/        # Final collage outputs
+
 
 * Re-add Dithering and batch webp conversion.
 * The "Dadaism" word collages are broken. There's also a list of things that I've written for other apps that should probably go here.
