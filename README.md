@@ -71,6 +71,16 @@ Each project contains:
 		├── restored/    # Exact assemblies
 		└── randomized/  # Random variations
 
+## Todo
+
+Finish building out the basics, then 
+
+1. Video processing functionality. 
+2. Additional and more quirky types of Dadaism, including more conventional looking collages. 
+3. A Gradio UI 
+4. Integration with Comfy UI or Automatic for a one stop workflow.
+
+
 ## Contributing
 
 We happily accept contributions of code, and or exotic donuts!

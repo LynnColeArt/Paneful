@@ -1,4 +1,4 @@
-# transform/output_manager.py
+# app/functions/transform/output_manager.py
 import os
 import cv2
 from datetime import datetime
@@ -11,10 +11,14 @@ class OutputManager:
         print(f"OutputManager initialized with: {project_name}, {output_dir}")
 
     def save_assembly(self, image, subdir_name, strategy='exact', run_number=None):
-        """Save assembled image with appropriate naming in strategy-specific directory."""
-        # Create strategy-specific subdirectory
-        strategy_dir = 'restored' if strategy == 'exact' else 'randomized'
-        output_subdir = os.path.join(self.output_dir, strategy_dir)
+        """Save assembled image with appropriate directory structure."""
+        if strategy == 'exact':
+            # For exact/restored assemblies, maintain render subdirectories
+            output_subdir = os.path.join(self.output_dir, 'restored', subdir_name)
+        else:
+            # For random assemblies, use a single directory
+            output_subdir = os.path.join(self.output_dir, 'randomized')
+            
         os.makedirs(output_subdir, exist_ok=True)
         print(f"Saving to directory: {output_subdir}")
 
@@ -24,7 +28,7 @@ class OutputManager:
         
         # Build filename parts
         parts = []
-        if strategy == 'random' and run_number is not None:
+        if strategy == 'random':
             parts.append(f"random-{run_number}")
         parts.extend([md5_hash, date_str])
         
