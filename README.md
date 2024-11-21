@@ -75,10 +75,25 @@ Each project contains:
 
 Finish building out the basics, then 
 
-1. Video processing functionality. 
-2. Additional and more quirky types of Dadaism, including more conventional looking collages. 
-3. A Gradio UI 
-4. Integration with Comfy UI or Automatic for a one stop workflow.
+* Clean up the functions directory so it makes more sense, now that we know where we're going.
+* Refactor project structure, making it a little easier to follow. Thinking, something like this.
+
+
+	project_name/
+	├── batch_in/                    # Bulk input processing
+	├── batch_out/                   # Bulk output processing
+	├── base_collage_image/          # Original images for collage
+	├── base_collage_tiles/          # Sliced tiles
+	├── rendered_collage_tiles_in/   # Rendered variations
+	└── rendered_collage_out/        # Final collage outputs
+
+
+* Re-add Dithering and batch webp conversion.
+* The "Dadaism" word collages are broken. There's also a list of things that I've written for other apps that should probably go here.
+* Video processing functionality for collages and batches. I want it to be two way as well. 
+* Additional and more quirky types of Dadaism, including more conventional looking collages. 
+* A Gradio UI 
+* Integration with Comfy UI or Automatic for a one stop workflow.
 
 
 ## Contributing
