@@ -1,128 +1,72 @@
-# transform/piece_selector.py
 import os
 import random
 
 class TileSelectionStrategy:
-    """Base class for tile selection strategies."""
     def select_tile(self, piece_name, subdirectory_path, all_subdirectories, project_path=None):
-        """
-        Select a tile based on strategy.
-        
-        Args:
-            piece_name: Name of the piece to select
-            subdirectory_path: Current subdirectory path
-            all_subdirectories: List of all available subdirectories
-            project_path: Optional. Root project path for accessing subdivided tiles
-        
-        Returns:
-            dict containing selection info
-        """
         raise NotImplementedError
 
 class ExactStrategy(TileSelectionStrategy):
-    """Select exact tile from exact position."""
     def select_tile(self, piece_name, subdirectory_path, all_subdirectories, project_path=None):
-        return {
-            'scheme': 'original',
-            'tiles': {
-                'original': os.path.join(subdirectory_path, piece_name)
-            }
-        }
+        return os.path.join(subdirectory_path, piece_name)
 
 class RandomStrategy(TileSelectionStrategy):
-    """Select random tile from available variants."""
     def select_tile(self, piece_name, subdirectory_path, all_subdirectories, project_path=None):
-        # Simple random selection from available variations
         random_subdir = random.choice(all_subdirectories)
-        return {
-            'scheme': 'original',
-            'tiles': {
-                'original': os.path.join(os.path.dirname(subdirectory_path), random_subdir, piece_name)
-            }
-        }
+        return os.path.join(os.path.dirname(subdirectory_path), random_subdir, piece_name)
 
 class MultiScaleStrategy(TileSelectionStrategy):
-    """Select tiles using multi-scale approach with subdivisions."""
-    def __init__(self, project_path):
-        self.project_path = project_path
-        self.valid_scales = ['5x5', '10x10', '15x15', '20x20']
-
-    def select_tile_scheme(self):
-        """Select whether to use original tile or one of the subdivision schemes."""
-        schemes = ['original'] + self.valid_scales
-        return random.choice(schemes)
+    def _convert_filename(self, original_name):
+        """Handle both naming patterns."""
+        try:
+            if '-' in original_name:
+                prefix, coords = original_name.rsplit('-', 1)
+                row, col = coords.split('.')[0].split('_')
+                return [f"{row}_{col}_0.png", f"{int(row)}_{int(col)}_0.png"]
+            return [original_name]
+        except:
+            print(f"Error converting filename: {original_name}")
+            return [original_name]
 
     def select_tile(self, piece_name, subdirectory_path, all_subdirectories, project_path=None):
-        variation = os.path.basename(subdirectory_path)
-        scheme = self.select_tile_scheme()
+        if not project_path:
+            return os.path.join(subdirectory_path, piece_name)
         
-        if scheme == 'original':
-            # Use random variation for original-sized tile
-            random_subdir = random.choice(all_subdirectories)
-            return {
-                'scheme': 'original',
-                'tiles': {
-                    'original': os.path.join(os.path.dirname(subdirectory_path), random_subdir, piece_name)
-                }
-            }
-        else:
-            # Handle subdivided tiles
-            subdivision_dir = os.path.join(
-                self.project_path,
-                "subdivided-tiles",
-                variation,
-                scheme
-            )
+        possible_names = self._convert_filename(piece_name)
+        print(f"\nTrying filenames: {possible_names}")
+        
+        subdivided_options = []
+        for subdir in all_subdirectories:
+            scale = random.choice(['5x5', '10x10', '15x15', '20x20'])
+            for name in possible_names:
+                subdivided_path = os.path.join(
+                    project_path,
+                    'subdivided-tiles',
+                    subdir,
+                    scale,
+                    name
+                )
+                print(f"Checking: {subdivided_path}")
+                if os.path.exists(subdivided_path):
+                    print(f"Found subdivision: {subdivided_path}")
+                    subdivided_options.append(subdivided_path)
+        
+        if not subdivided_options:
+            fallback = os.path.join(subdirectory_path, piece_name)
+            print(f"No subdivisions found, using: {fallback}")
+            return fallback
             
-            if not os.path.exists(subdivision_dir):
-                # Fall back to original if subdivision doesn't exist
-                return self.select_tile(piece_name, subdirectory_path, all_subdirectories)
-            
-            # Extract base position from piece name
-            prefix, coords = piece_name.rsplit('-', 1)
-            base_position = coords.split('.')[0]
-            
-            # Get all subtiles for this position
-            grid_size = int(scheme.split('x')[0])
-            subtiles = {}
-            
-            # Verify all required subtiles exist
-            all_present = True
-            for row in range(grid_size):
-                for col in range(grid_size):
-                    subtile_name = f"{base_position}-{row}_{col}.png"
-                    subtile_path = os.path.join(subdivision_dir, subtile_name)
-                    
-                    if os.path.exists(subtile_path):
-                        subtiles[f"{row}_{col}"] = subtile_path
-                    else:
-                        all_present = False
-                        break
-                if not all_present:
-                    break
-            
-            if all_present:
-                return {
-                    'scheme': scheme,
-                    'tiles': subtiles
-                }
-            else:
-                # Fall back to original if any subtiles are missing
-                return self.select_tile(piece_name, subdirectory_path, all_subdirectories)
+        selected = random.choice(subdivided_options)
+        print(f"Selected: {selected}")
+        return selected
 
 class PieceSelector:
-    """Handles piece selection strategy."""
     def __init__(self, strategy='exact'):
         strategies = {
             'exact': ExactStrategy(),
             'random': RandomStrategy(),
+            'multi_scale': MultiScaleStrategy()
         }
         self.strategy = strategies.get(strategy, ExactStrategy())
-    
-    def set_multi_scale_strategy(self, project_path):
-        """Set strategy to multi-scale mode with project path."""
-        self.strategy = MultiScaleStrategy(project_path)
 
     def select_piece(self, piece_name, current_subdir, all_subdirs, project_path=None):
-        """Select piece based on current strategy."""
         return self.strategy.select_tile(piece_name, current_subdir, all_subdirs, project_path)
