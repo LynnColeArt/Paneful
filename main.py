@@ -1,14 +1,16 @@
+# main.py
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 
 import os
-# main.py
-from app.functions.base.settings import load_settings  # Updated import path
+from app.functions.base.settings import load_settings
 from app.ui.menu_functions import (
     display_main_menu,
     display_project_menu,
     display_project_list,
-    select_dictionary
+    select_dictionary,
+    display_random_assembly_menu,
+    get_multi_scale_params
 )
 from app.functions.program_functions import (
     create_new_project,
@@ -17,9 +19,37 @@ from app.functions.program_functions import (
 )
 from app.functions.base.slicer import slice_and_save
 from app.functions.transform import Assembler
+from app.functions.transform.subdivision_functions import TileSubdivider, process_all_variations
+
+def handle_random_assembly_menu(project_path):
+    """Handle random assembly menu options."""
+    while True:
+        choice = display_random_assembly_menu()
+        project_name = os.path.basename(project_path)
+        rendered_tiles_dir = os.path.join(project_path, "rendered-tiles")
+        collage_out_dir = os.path.join(project_path, "collage-out")
+        
+        if choice == '1':  # Basic Random Assembly
+            run_number = int(input("How many variants to generate? (default: 1) ") or "1")
+            assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
+            assembler.assemble(strategy='random', run_number=run_number)
+            
+        elif choice == '2':  # Multi-Scale Assembly
+            params = get_multi_scale_params()
+            assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
+            assembler.set_multi_scale_strategy(project_path)  # Enable multi-scale mode
+            assembler.assemble(strategy='random', run_number=params['num_variants'])
+            
+        elif choice == '3':  # Dadaist Collage
+            word_count = int(input("How many words to place (default 10)? ") or "10")
+            dictionary_path = select_dictionary()
+            create_dadaist_collage_with_words(project_path, word_count, dictionary_path)
+            
+        elif choice == '4':  # Back
+            break
 
 def handle_project_menu(project_path):
-    """Handle project menu logic without UI concerns."""
+    """Handle project menu logic."""
     while True:
         choice = display_project_menu(os.path.basename(project_path))
         project_name = os.path.basename(project_path)
@@ -34,17 +64,16 @@ def handle_project_menu(project_path):
             assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
             assembler.assemble(strategy='exact')
             
-        elif choice == '3':  # Randomize Tiles
-            rendered_tiles_dir = os.path.join(project_path, "rendered-tiles")
-            collage_out_dir = os.path.join(project_path, "collage-out")
-            run_number = int(input("How many variants to generate? (default: 1) ") or "1")
-            assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
-            assembler.assemble(strategy='random', run_number=run_number)
+        elif choice == '3':  # Random Assembly Options
+            handle_random_assembly_menu(project_path)
             
-        elif choice == '4':  # Create Dadaist Collage
-            word_count = int(input("How many words to place (default 10)? ") or "10")
-            dictionary_path = select_dictionary()
-            create_dadaist_collage_with_words(project_path, word_count, dictionary_path)
+        elif choice == '4':  # Subdivide Tiles for Multi-Scale
+            print("Starting processing of all variations...")
+            try:
+                process_all_variations(project_path)
+                print("Successfully processed all variations")
+            except Exception as e:
+                print(f"Error processing variations: {e}")
             
         elif choice == '5':  # Back to Main Menu
             break

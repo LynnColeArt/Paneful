@@ -91,23 +91,75 @@ def create_new_project(base_dir):
     project_name = input("Enter project name: ").replace(" ", "_")
     project_path = os.path.join(base_dir, project_name)
     
-    directories = [
+    # Base directory structure
+    base_directories = [
         "base-image",
         "base-tiles",
         "rendered-tiles",
-        "mask-directory",
-        "collage-out/restored",  # Updated structure
-        "collage-out/randomized"  # Updated structure
+        "mask-directory"
     ]
     
-    for dir_name in directories:
+    # Output directories
+    output_directories = [
+        "collage-out/restored",
+        "collage-out/randomized"
+    ]
+    
+    # New subdivision directories - these will be populated per rendered tile set
+    subdivision_sizes = ["5x5", "10x10", "15x15", "20x20"]
+    
+    # Create base directories
+    for dir_name in base_directories:
         os.makedirs(os.path.join(project_path, dir_name), exist_ok=True)
     
+    # Create output directories
+    for dir_name in output_directories:
+        os.makedirs(os.path.join(project_path, dir_name), exist_ok=True)
+    
+    # Create subdivided-tiles directory (will be populated with variation subdirs later)
+    os.makedirs(os.path.join(project_path, "subdivided-tiles"), exist_ok=True)
+    
+    # Create project file
     with open(os.path.join(project_path, "paneful.project"), 'w') as f:
         f.write(project_name)
     
     print(f"Created project '{project_name}' with directory structure:")
-    for dir_name in directories:
-        print(f"  ├── {dir_name}")
+    print("  ├── base-image/")
+    print("  ├── base-tiles/")
+    print("  ├── rendered-tiles/")
+    print("  ├── subdivided-tiles/")
+    print("  │   └── [variation_dirs]/")
+    for size in subdivision_sizes:
+        print(f"  │       └── {size}/")
+    print("  ├── mask-directory/")
+    print("  └── collage-out/")
+    print("      ├── restored/")
+    print("      └── randomized/")
     
     return project_path
+
+def create_subdivision_directories(project_path, variation_name):
+    """Create subdivision directories for a specific rendered tile variation."""
+    subdivision_base = os.path.join(project_path, "subdivided-tiles", variation_name)
+    subdivision_sizes = ["5x5", "10x10", "15x15", "20x20"]
+    
+    for size in subdivision_sizes:
+        os.makedirs(os.path.join(subdivision_base, size), exist_ok=True)
+    
+    print(f"Created subdivision directories for variation: {variation_name}")
+    return subdivision_base
+
+def setup_new_variation_subdivisions(project_path, rendered_variation):
+    """Set up subdivision directories for a new rendered tile variation."""
+    try:
+        # Extract variation name from path if full path provided
+        variation_name = os.path.basename(rendered_variation)
+        
+        # Create subdivision directories
+        subdivision_base = create_subdivision_directories(project_path, variation_name)
+        
+        print(f"Successfully set up subdivision directories for {variation_name}")
+        return subdivision_base
+    except Exception as e:
+        print(f"Error setting up subdivision directories: {e}")
+        return None
