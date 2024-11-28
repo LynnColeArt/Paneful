@@ -48,59 +48,98 @@ class Assembler:
             print("No valid tile directories found.")
             return
 
-        base_subdir = valid_subdirs[0]
-        base_path = os.path.join(self.rendered_tiles_dir, base_subdir)
-        print(f"Using {base_subdir} as base for {'multi-scale' if strategy == 'multi-scale' else 'random'} assemblies")
-        
-        try:
-            grid_manager = GridManager(base_path)
-            
-            for run in range(run_number):
+        if strategy == 'exact':
+            # Process each valid subdirectory for exact/restore strategy
+            for base_subdir in valid_subdirs:
                 try:
+                    base_path = os.path.join(self.rendered_tiles_dir, base_subdir)
+                    grid_manager = GridManager(base_path)
                     canvas = grid_manager.create_canvas()
+                    
                     assembly_data = {
                         'project_name': self.project_name,
                         'strategy': strategy,
-                        'run_number': run + 1,
                         'base_directory': base_subdir,
                         'grid_dimensions': grid_manager.grid_dimensions,
                         'piece_dimensions': grid_manager.piece_dimensions,
                         'pieces': []
                     }
 
-                    if strategy == 'multi-scale':
-                        self._process_multi_scale_pieces(
-                            canvas,
-                            base_path,
-                            grid_manager,
-                            valid_subdirs,
-                            assembly_data
-                        )
-                    else:
-                        self._process_pieces(
-                            canvas,
-                            base_path,
-                            grid_manager,
-                            valid_subdirs,
-                            assembly_data
-                        )
+                    self._process_pieces(
+                        canvas,
+                        base_path,
+                        grid_manager,
+                        valid_subdirs,
+                        assembly_data
+                    )
                     
                     self.output_manager.save_assembly(
                         canvas, 
                         base_subdir,
                         strategy,
-                        run + 1,
+                        None,
                         assembly_data
                     )
-                    print(f"Created {'multi-scale' if strategy == 'multi-scale' else 'random'} assembly {run + 1} of {run_number}")
-                
-                except Exception as e:
-                    print(f"Error creating {'multi-scale' if strategy == 'multi-scale' else 'random'} assembly {run + 1}: {e}")
-                    continue
+                    print(f"Processed directory: {base_subdir}")
                     
-        except Exception as e:
-            print(f"Error processing base directory {base_subdir}: {e}")
-            return
+                except Exception as e:
+                    print(f"Error processing directory {base_subdir}: {e}")
+                    continue
+        else:
+            # For random and multi-scale, keep existing behavior
+            base_subdir = valid_subdirs[0]
+            base_path = os.path.join(self.rendered_tiles_dir, base_subdir)
+            print(f"Using {base_subdir} as base for {'multi-scale' if strategy == 'multi-scale' else 'random'} assemblies")
+            
+            try:
+                grid_manager = GridManager(base_path)
+                
+                for run in range(run_number):
+                    try:
+                        canvas = grid_manager.create_canvas()
+                        assembly_data = {
+                            'project_name': self.project_name,
+                            'strategy': strategy,
+                            'run_number': run + 1,
+                            'base_directory': base_subdir,
+                            'grid_dimensions': grid_manager.grid_dimensions,
+                            'piece_dimensions': grid_manager.piece_dimensions,
+                            'pieces': []
+                        }
+
+                        if strategy == 'multi-scale':
+                            self._process_multi_scale_pieces(
+                                canvas,
+                                base_path,
+                                grid_manager,
+                                valid_subdirs,
+                                assembly_data
+                            )
+                        else:
+                            self._process_pieces(
+                                canvas,
+                                base_path,
+                                grid_manager,
+                                valid_subdirs,
+                                assembly_data
+                            )
+                        
+                        self.output_manager.save_assembly(
+                            canvas, 
+                            base_subdir,
+                            strategy,
+                            run + 1,
+                            assembly_data
+                        )
+                        print(f"Created {'multi-scale' if strategy == 'multi-scale' else 'random'} assembly {run + 1} of {run_number}")
+                    
+                    except Exception as e:
+                        print(f"Error creating {'multi-scale' if strategy == 'multi-scale' else 'random'} assembly {run + 1}: {e}")
+                        continue
+                        
+            except Exception as e:
+                print(f"Error processing base directory {base_subdir}: {e}")
+                return
 
     def _process_pieces(self, canvas, base_path, grid_manager, valid_subdirs, assembly_data):
         """Process regular (non-multi-scale) pieces."""
@@ -188,7 +227,7 @@ class Assembler:
                             # Randomly select directory for this specific subdivided tile
                             selected_subdir, selected_path = random.choice(available_dirs)
                             
-                            sub_tile_name = f"{coords.parent_row}-{coords.parent_col}_{sub_row}-{sub_col}.png"
+                            sub_tile_name = f"{coords.parent_row}-{parent_col}_{sub_row}-{sub_col}.png"
                             sub_tile_path = os.path.join(selected_path, sub_tile_name)
                             used_directories[f"{sub_row}-{sub_col}"] = selected_subdir
                             
