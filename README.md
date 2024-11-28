@@ -95,6 +95,36 @@ Finish building out the basics, then
 * A Gradio UI 
 * Integration with Comfy UI or Automatic for a one stop workflow.
 
+# Changelog
+
+## [1.0.0] - 2024-11-28
+### Added
+- Multi-scale assembly strategy that combines different grid sizes (5x5, 10x10, 15x15, 20x20)
+- Directory-specific tile selection per subdivided space
+- Enhanced manifest generation with detailed subdivision information
+
+### Changed
+- Refactored tile naming and processing to use regex patterns
+- Separated tile assembly strategies into distinct processing paths
+- Modified output handling to support subdivided tile structures
+
+### Fixed
+- Fixed tile placement logic to maintain grid alignment
+- Corrected sizing issues with subdivided tiles
+- Fixed manifests to accurately reflect tile selections and placements
+
+### Technical Details
+- Added TileCoordinates dataclass for consistent coordinate handling
+- Implemented smarter tile directory scanning
+- Added debug logging for tile placement and processing
+- Enhanced error handling throughout tile processing chain
+
+## [Upcoming]
+### Planned
+- Strategy code refactoring into separate modules
+- Implementation of additional assembly strategies
+- Enhanced error reporting and recovery
+- Improved manifest structure
 
 ## Contributing
 
