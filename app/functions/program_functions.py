@@ -106,7 +106,7 @@ def create_new_project(base_dir):
     ]
     
     # New subdivision directories - these will be populated per rendered tile set
-    subdivision_sizes = ["5x5", "10x10", "15x15", "20x20"]
+    subdivision_sizes = ["5x5", "10x10", "15x15"]
     
     # Create base directories
     for dir_name in base_directories:
