@@ -1,5 +1,6 @@
 # app/functions/program_functions.py
 import os
+import json
 import random
 from datetime import datetime
 from PIL import Image
@@ -14,8 +15,7 @@ def create_dadaist_collage_with_words(project_path, word_count=10, dictionary_pa
     fonts_dir = os.path.join(os.path.dirname(__file__), '..', 'fonts')
 
     print(f"Starting Dadaist collage for project: {project_name}")
-
-    # List subdirectories in rendered_tiles_dir
+    
     subdirectories = [d for d in os.listdir(rendered_tiles_dir) 
                     if os.path.isdir(os.path.join(rendered_tiles_dir, d))]
 
@@ -23,18 +23,15 @@ def create_dadaist_collage_with_words(project_path, word_count=10, dictionary_pa
         print("No subdirectories found in rendered_tiles_dir.")
         return
 
-    # Select a random subdirectory
     base_subdir = random.choice(subdirectories)
     base_subdir_path = os.path.join(rendered_tiles_dir, base_subdir)
     print(f"Selected base subdirectory: {base_subdir_path}")
 
-    # Get all tiles from the selected subdirectory
     tiles = sorted([f for f in os.listdir(base_subdir_path) if f.endswith('.png')])
     if not tiles:
         print("No tiles found in selected subdirectory.")
         return
 
-    # Create base collage from tiles
     sample_tile = Image.open(os.path.join(base_subdir_path, tiles[0])).convert('RGBA')
     tile_width, tile_height = sample_tile.size
     grid_size = int(len(tiles) ** 0.5)  # Square grid
@@ -50,13 +47,11 @@ def create_dadaist_collage_with_words(project_path, word_count=10, dictionary_pa
         except Exception as e:
             print(f"Error processing tile {tile_name}: {e}")
 
-    # Add words
     print(f"Applying {word_count} words...")
     for i in range(word_count):
         print(f"Placing word {i+1} of {word_count}")
         result = draw_single_word(result, fonts_dir, dictionary_path)
 
-    # Save the result
     os.makedirs(collage_out_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = os.path.join(collage_out_dir, f"collage_{timestamp}.png")
@@ -96,7 +91,11 @@ def create_new_project(base_dir):
         "base-image",
         "base-tiles",
         "rendered-tiles",
-        "mask-directory"
+        "mask-directory",
+        "logs",
+        "tile_maps/canny",
+        "tile_maps/depth",
+        "tile_maps/normal"
     ]
     
     # Output directories
@@ -116,12 +115,32 @@ def create_new_project(base_dir):
     for dir_name in output_directories:
         os.makedirs(os.path.join(project_path, dir_name), exist_ok=True)
     
-    # Create subdivided-tiles directory (will be populated with variation subdirs later)
+    # Create subdivided-tiles directory
     os.makedirs(os.path.join(project_path, "subdivided-tiles"), exist_ok=True)
     
-    # Create project file
+    # Load global settings for default upscaler
+    settings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'settings.cfg')
+    default_upscaler = "UltraMix_Balanced_4x.pth"  # Fallback default
+    
+    try:
+        with open(settings_path, 'r') as f:
+            for line in f:
+                if line.strip() and not line.startswith('#'):
+                    key, value = line.strip().split('=')
+                    if key == 'default_upscaler':
+                        default_upscaler = value
+    except Exception as e:
+        print(f"Warning: Could not read settings.cfg, using default upscaler")
+    
+    # Create project file with upscaler setting
+    project_config = {
+        "project_name": project_name,
+        "upscaler": default_upscaler,
+        "created_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
     with open(os.path.join(project_path, "paneful.project"), 'w') as f:
-        f.write(project_name)
+        json.dump(project_config, f, indent=4)
     
     print(f"Created project '{project_name}' with directory structure:")
     print("  ├── base-image/")
@@ -132,16 +151,22 @@ def create_new_project(base_dir):
     for size in subdivision_sizes:
         print(f"  │       └── {size}/")
     print("  ├── mask-directory/")
+    print("  ├── tile_maps/")
+    print("  │   ├── canny/")
+    print("  │   ├── depth/")
+    print("  │   └── normal/")
+    print("  ├── logs/")
     print("  └── collage-out/")
     print("      ├── restored/")
     print("      └── randomized/")
+    print(f"\nDefault upscaler set to: {default_upscaler}")
     
     return project_path
 
 def create_subdivision_directories(project_path, variation_name):
     """Create subdivision directories for a specific rendered tile variation."""
     subdivision_base = os.path.join(project_path, "subdivided-tiles", variation_name)
-    subdivision_sizes = ["5x5", "10x10", "15x15", "20x20"]
+    subdivision_sizes = ["5x5", "10x10", "15x15"]
     
     for size in subdivision_sizes:
         os.makedirs(os.path.join(subdivision_base, size), exist_ok=True)

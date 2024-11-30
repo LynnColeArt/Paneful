@@ -4,6 +4,7 @@ import cv2
 import random
 import numpy as np
 from .base_strategy import AssemblyStrategy
+from ..transform.subdivision_functions import process_all_variations
 
 class MultiScaleStrategy(AssemblyStrategy):
     """Multi-scale assembly strategy - handles subdivision reassembly."""
@@ -13,8 +14,23 @@ class MultiScaleStrategy(AssemblyStrategy):
         self.piece_selector = piece_selector
         self.subdivision_scales = ["5x5", "10x10", "15x15"]
 
+    def _check_subdivided_tiles_exist(self, valid_subdirs):
+        """Check if subdivided tiles exist for any variation."""
+        for subdir in valid_subdirs:
+            for scale in self.subdivision_scales:
+                scale_path = os.path.join(self.project_path, "subdivided-tiles", subdir, scale)
+                if os.path.exists(scale_path) and os.listdir(scale_path):
+                    return True
+        return False
+
     def process_pieces(self, canvas, base_path, grid_manager, valid_subdirs, assembly_data):
         """Process pieces using multi-scale assembly approach."""
+        # Check if we need to create subdivided tiles
+        if not self._check_subdivided_tiles_exist(valid_subdirs):
+            print("No subdivided tiles found. Creating them now...")
+            process_all_variations(self.project_path)
+            print("Subdivision complete. Proceeding with assembly...")
+
         height, width = grid_manager.piece_dimensions
         
         for piece in sorted(os.listdir(base_path)):

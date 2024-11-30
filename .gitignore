@@ -21,6 +21,7 @@ dist/
 examples/
 projects/
 app/projects/
+app/upscalers/
 ai_assets/
 
 # Ignore system-specific files
