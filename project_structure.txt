@@ -1,0 +1,63 @@
+Project Structure for: d:\projects\paneful2\production-copy
+==================================================
++-- app/
++-- obsolete/
++-- .gitattributes
++-- .gitignore
++-- LICENSE.txt
++-- README.md
++-- directory-mapper.py
++-- main.py
++-- requirements.txt
++-- settings.cfg
+|   +-- fonts/
+|   +-- functions/
+|   +-- meaningless-words/
+|   +-- ui/
+|   |   +-- RomantiqueInitials.ttf
+|   |   +-- RusticBlackShadow.ttf
+|   |   +-- THICKHEA.TTF
+|   |   +-- Topeka.ttf
+|   |   +-- base/
+|   |   +-- overlay/
+|   |   +-- transform/
+|   |   +-- __init__.py
+|   |   +-- collage_functions.py
+|   |   +-- compositing_functions.py
+|   |   +-- font_functions.py
+|   |   +-- helper_functions.py
+|   |   +-- init.py
+|   |   +-- layering_functions.py
+|   |   +-- program_functions.py
+|   |   +-- project_operations.py
+|   |   +-- text_effects.py
+|   |   +-- word-placement.py
+|   |   |   +-- __init__.py
+|   |   |   +-- grid.py
+|   |   |   +-- io.py
+|   |   |   +-- settings.py
+|   |   |   +-- slicer.py
+|   |   |   +-- tile_naming.py
+|   |   |   +-- __init__.py
+|   |   |   +-- effects.py
+|   |   |   +-- text.py
+|   |   |   +-- __init__.py
+|   |   |   +-- assembler.py
+|   |   |   +-- effects.py
+|   |   |   +-- grid_manager.py
+|   |   |   +-- output_manager.py
+|   |   |   +-- overlay.py
+|   |   |   +-- piece_selector.py
+|   |   |   +-- position.py
+|   |   |   +-- subdivision_functions.py
+|   |   +-- ai-art-criticism.txt
+|   |   +-- dadaism.txt
+|   |   +-- dictionary.txt
+|   |   +-- menu_functions.py
+|   +-- app/
+|   |   +-- dadaism-lkg.py
+|   |   +-- dadaism.py
+|   |   +-- fixer.py
+|   |   +-- install.py
+|   |   +-- randomize.py
+|   |   +-- slicer.py
