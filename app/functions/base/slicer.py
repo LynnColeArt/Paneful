@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from datetime import datetime
 from ..base.logger import Logger
+from ..base.preprocessor import preprocess_image
 
 def create_grid_slices(image_path, grid_size, logger):
     """Split image into grid of specified size."""
@@ -47,15 +48,17 @@ def slice_and_save(project_path, grid_size):
     base_image_dir = os.path.join(project_path, "base-image")
     base_tiles_dir = os.path.join(project_path, "base-tiles")
     mask_directory = os.path.join(project_path, "mask-directory")
+    preprocessed_dir = os.path.join(base_image_dir, "preprocessed")
 
     # Ensure directories exist
-    for directory in [base_tiles_dir, mask_directory]:
+    for directory in [base_tiles_dir, mask_directory, preprocessed_dir]:
         os.makedirs(directory, exist_ok=True)
         logger.log(f"Ensured directory exists: {directory}")
 
     # Process each image in base-image directory
     image_files = [f for f in os.listdir(base_image_dir) 
-                  if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
+                  if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')) 
+                  and os.path.isfile(os.path.join(base_image_dir, f))]  # Only process files, not directories
     
     if not image_files:
         logger.log("No valid images found in base-image directory", "WARNING")
@@ -66,10 +69,24 @@ def slice_and_save(project_path, grid_size):
     for filename in image_files:
         logger.log(f"Processing image: {filename}")
         image_path = os.path.join(base_image_dir, filename)
-        padded_image, piece_size = create_grid_slices(image_path, grid_size, logger)
+        
+        # Preprocess the image
+        logger.log(f"Preprocessing {filename}")
+        try:
+            preprocessed_path = preprocess_image(image_path, preprocessed_dir)
+            if preprocessed_path is None:
+                logger.log(f"Preprocessing failed for {filename}, skipping", "ERROR")
+                continue
+            logger.log(f"Successfully preprocessed {filename}")
+        except Exception as e:
+            logger.log(f"Error during preprocessing of {filename}: {str(e)}", "ERROR")
+            continue
+
+        # Create grid slices from preprocessed image
+        padded_image, piece_size = create_grid_slices(preprocessed_path, grid_size, logger)
         
         if padded_image is None or piece_size is None:
-            logger.log(f"Failed to process {filename}, skipping", "ERROR")
+            logger.log(f"Failed to process {preprocessed_path}, skipping", "ERROR")
             continue
 
         height, width, _ = padded_image.shape
