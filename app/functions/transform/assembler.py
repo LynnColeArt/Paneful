@@ -1,10 +1,12 @@
 # transform/assembler.py
 import os
+import cv2
+import numpy as np
+import random
 from .grid_manager import GridManager
 from .piece_selector import PieceSelector
 from .output_manager import OutputManager
-from ..strategies.standard_strategy import StandardStrategy
-from ..strategies.multi_scale_strategy import MultiScaleStrategy
+from ..base.tile_naming import TileNaming
 
 class Assembler:
     """Main assembly coordinator."""
@@ -13,25 +15,18 @@ class Assembler:
         self.rendered_tiles_dir = rendered_tiles_dir
         self.collage_out_dir = collage_out_dir
         self.output_manager = OutputManager(project_name, collage_out_dir)
+        self.tile_naming = TileNaming()
         self.piece_selector = None
-        self.strategy = None
-        self.project_path = None
 
     def set_multi_scale_strategy(self, project_path):
         """Enable multi-scale assembly mode."""
         self.piece_selector = PieceSelector('multi-scale')
         self.project_path = project_path
-        self.strategy = MultiScaleStrategy(self.project_name, self.piece_selector, project_path)
 
     def assemble(self, strategy='exact', run_number=1):
         """Main assembly process."""
-        # Initialize strategy and piece selector
         if self.piece_selector is None:
             self.piece_selector = PieceSelector(strategy)
-            if strategy == 'multi-scale':
-                self.strategy = MultiScaleStrategy(self.project_name, self.piece_selector, self.project_path)
-            else:
-                self.strategy = StandardStrategy(self.project_name, self.piece_selector, self.project_path)
         
         # Find valid tile directories
         subdirectories = [d for d in os.listdir(self.rendered_tiles_dir) 
@@ -53,24 +48,24 @@ class Assembler:
             print("No valid tile directories found.")
             return
 
-        # For exact strategy (restore), process each valid directory
         if strategy == 'exact':
-            for subdir in valid_subdirs:
-                base_path = os.path.join(self.rendered_tiles_dir, subdir)
-                print(f"Processing restore for {subdir}")
+            # Process each valid subdirectory for exact/restore strategy
+            for base_subdir in valid_subdirs:
                 try:
+                    base_path = os.path.join(self.rendered_tiles_dir, base_subdir)
                     grid_manager = GridManager(base_path)
                     canvas = grid_manager.create_canvas()
+                    
                     assembly_data = {
                         'project_name': self.project_name,
                         'strategy': strategy,
-                        'base_directory': subdir,
+                        'base_directory': base_subdir,
                         'grid_dimensions': grid_manager.grid_dimensions,
                         'piece_dimensions': grid_manager.piece_dimensions,
                         'pieces': []
                     }
 
-                    self.strategy.process_pieces(
+                    self._process_pieces(
                         canvas,
                         base_path,
                         grid_manager,
@@ -80,18 +75,18 @@ class Assembler:
                     
                     self.output_manager.save_assembly(
                         canvas, 
-                        subdir,
+                        base_subdir,
                         strategy,
                         None,
                         assembly_data
                     )
-                    print(f"Created restore for {subdir}")
+                    print(f"Processed directory: {base_subdir}")
                     
                 except Exception as e:
-                    print(f"Error processing directory {subdir}: {e}")
+                    print(f"Error processing directory {base_subdir}: {e}")
                     continue
         else:
-            # For random or multi-scale, use first directory as base and pull from all
+            # For random and multi-scale, keep existing behavior
             base_subdir = valid_subdirs[0]
             base_path = os.path.join(self.rendered_tiles_dir, base_subdir)
             print(f"Using {base_subdir} as base for {'multi-scale' if strategy == 'multi-scale' else 'random'} assemblies")
@@ -112,13 +107,22 @@ class Assembler:
                             'pieces': []
                         }
 
-                        self.strategy.process_pieces(
-                            canvas,
-                            base_path,
-                            grid_manager,
-                            valid_subdirs,
-                            assembly_data
-                        )
+                        if strategy == 'multi-scale':
+                            self._process_multi_scale_pieces(
+                                canvas,
+                                base_path,
+                                grid_manager,
+                                valid_subdirs,
+                                assembly_data
+                            )
+                        else:
+                            self._process_pieces(
+                                canvas,
+                                base_path,
+                                grid_manager,
+                                valid_subdirs,
+                                assembly_data
+                            )
                         
                         self.output_manager.save_assembly(
                             canvas, 
@@ -136,3 +140,166 @@ class Assembler:
             except Exception as e:
                 print(f"Error processing base directory {base_subdir}: {e}")
                 return
+
+    def _process_pieces(self, canvas, base_path, grid_manager, valid_subdirs, assembly_data):
+        """Process regular (non-multi-scale) pieces."""
+        height, width = grid_manager.piece_dimensions
+        
+        for piece in sorted(os.listdir(base_path)):
+            if not piece.endswith('.png'):
+                continue
+                
+            try:
+                coords = self.tile_naming.parse_original_tile_name(piece)
+                if coords is None:
+                    print(f"Could not parse coordinates from piece name: {piece}")
+                    continue
+                    
+                piece_path = self.piece_selector.select_piece(
+                    piece,
+                    base_path,
+                    valid_subdirs,
+                    self.project_path if hasattr(self, 'project_path') else None
+                )
+                
+                if os.path.exists(piece_path):
+                    piece_img = cv2.imread(piece_path)
+                    if piece_img is not None:
+                        if piece_img.shape[:2] != (height, width):
+                            try:
+                                piece_img = cv2.resize(piece_img, (width, height))
+                            except Exception as e:
+                                print(f"Error resizing piece {piece}: {e}")
+                                continue
+                            
+                        row_start = coords.parent_row * height
+                        col_start = coords.parent_col * width
+                        try:
+                            canvas[
+                                row_start:row_start + height,
+                                col_start:col_start + width
+                            ] = piece_img
+                            
+                            assembly_data['pieces'].append({
+                                'original_piece': piece,
+                                'selected_piece': os.path.basename(piece_path),
+                                'position': {
+                                    'row': coords.parent_row,
+                                    'col': coords.parent_col
+                                }
+                            })
+                        except ValueError as e:
+                            print(f"Error placing piece in canvas: {e}")
+                    else:
+                        print(f"Could not read piece: {piece_path}")
+                else:
+                    print(f"Piece not found: {piece_path}")
+                    
+            except Exception as e:
+                print(f"Error processing piece {piece}: {e}")
+
+    def _process_multi_scale_pieces(self, canvas, base_path, grid_manager, valid_subdirs, assembly_data):
+        """Process pieces for multi-scale assembly."""
+        height, width = grid_manager.piece_dimensions
+        subdivision_scales = ["5x5", "10x10", "15x15", "20x20"]
+        
+        for piece in sorted(os.listdir(base_path)):
+            if not piece.endswith('.png'):
+                continue
+                
+            try:
+                coords = self.tile_naming.parse_original_tile_name(piece)
+                if coords is None:
+                    print(f"Could not parse coordinates from piece name: {piece}")
+                    continue
+                
+                # Randomly select subdivision scale for this parent tile
+                selected_scale = random.choice(subdivision_scales)
+                try:
+                    grid_size = int(selected_scale.split('x')[0])
+                except (ValueError, IndexError):
+                    print(f"Invalid scale format: {selected_scale}")
+                    continue
+                
+                # Create a blank tile space for the parent position
+                tile_space = np.zeros((height, width, 3), dtype=np.uint8)
+                
+                # Calculate subdivided tile dimensions
+                sub_height = height // grid_size
+                sub_width = width // grid_size
+                
+                # Find all available directories that have this scale
+                available_dirs = []
+                for subdir in valid_subdirs:
+                    scale_path = os.path.join(self.project_path, "subdivided-tiles", subdir, selected_scale)
+                    if os.path.exists(scale_path) and os.path.isdir(scale_path):
+                        available_dirs.append((subdir, scale_path))
+                
+                if available_dirs:
+                    print(f"Using {selected_scale} for parent tile {piece}")
+                    used_directories = {}  # Track which directories we used for each subtile
+                    
+                    # For each position in the subdivision grid
+                    for sub_row in range(grid_size):
+                        for sub_col in range(grid_size):
+                            # Randomly select directory for this specific subdivided tile
+                            selected_subdir, selected_path = random.choice(available_dirs)
+                            
+                            # Fixed: Use coords.parent_col instead of undefined parent_col
+                            sub_tile_name = f"{coords.parent_row}-{coords.parent_col}_{sub_row}-{sub_col}.png"
+                            sub_tile_path = os.path.join(selected_path, sub_tile_name)
+                            used_directories[f"{sub_row}-{sub_col}"] = selected_subdir
+                            
+                            if os.path.exists(sub_tile_path):
+                                sub_img = cv2.imread(sub_tile_path)
+                                if sub_img is not None:
+                                    if sub_img.shape[:2] != (sub_height, sub_width):
+                                        try:
+                                            sub_img = cv2.resize(sub_img, (sub_width, sub_height))
+                                        except Exception as e:
+                                            print(f"Error resizing subtile {sub_tile_name}: {e}")
+                                            continue
+                                    
+                                    # Place in tile space
+                                    sub_row_start = sub_row * sub_height
+                                    sub_col_start = sub_col * sub_width
+                                    try:
+                                        tile_space[
+                                            sub_row_start:sub_row_start + sub_height,
+                                            sub_col_start:sub_col_start + sub_width
+                                        ] = sub_img
+                                    except ValueError as e:
+                                        print(f"Error placing subtile in tile space: {e}")
+                                        continue
+                                else:
+                                    print(f"Could not read subtile: {sub_tile_path}")
+                            else:
+                                print(f"Subtile not found: {sub_tile_path}")
+                    
+                    # Place completed tile space in canvas
+                    row_start = coords.parent_row * height
+                    col_start = coords.parent_col * width
+                    try:
+                        canvas[
+                            row_start:row_start + height,
+                            col_start:col_start + width
+                        ] = tile_space
+                        
+                        # Record piece placement with detailed subdivision info
+                        assembly_data['pieces'].append({
+                            'original_piece': piece,
+                            'selected_scale': selected_scale,
+                            'subdivided_tiles': used_directories,
+                            'position': {
+                                'row': coords.parent_row,
+                                'col': coords.parent_col
+                            }
+                        })
+                    except ValueError as e:
+                        print(f"Error placing tile space in canvas: {e}")
+                else:
+                    print(f"No subdivided tiles found for {piece} at scale {selected_scale}")
+                    
+            except Exception as e:
+                print(f"Error processing piece {piece}: {e}")
+                continue
