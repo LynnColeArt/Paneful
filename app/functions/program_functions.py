@@ -3,8 +3,8 @@ import os
 import random
 from datetime import datetime
 from PIL import Image
-from ..functions.overlay.text import draw_single_word
-from ..base.logger import Logger
+from .overlay.text import draw_single_word
+from .base.logger import Logger  # Fixed import path
 
 def create_dadaist_collage_with_words(project_path, word_count=10, dictionary_path='meaningless-words/dictionary.txt'):
     """Creates a dadaist collage with specified number of words."""

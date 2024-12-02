@@ -11,19 +11,28 @@ class Logger:
 
     def _ensure_log_file(self):
         """Ensure log file exists and create it if needed."""
-        log_path = os.path.join(self.project_path, "logs", f"paneful_{datetime.now():%Y-%m-%d}.log")
-        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        # Create logs directory in project root
+        log_dir = os.path.join(self.project_path, "logs")
+        os.makedirs(log_dir, exist_ok=True)
         
+        # Create dated log file
+        date_str = datetime.now().strftime("%m-%d-%y")
+        log_path = os.path.join(log_dir, f"paneful-{date_str}.log")
+        
+        # Create file if it doesn't exist
         if not os.path.exists(log_path):
             with open(log_path, 'w') as f:
-                f.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Log file created\n")
+                f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Log file created\n")
                 
         return log_path
 
     def log(self, message, level="INFO"):
         """Write a message to the log file."""
         try:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             with open(self.log_path, 'a') as f:
-                f.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {level}: {message}\n")
+                f.write(f"[{timestamp}] {level}: {message}\n")
         except Exception as e:
+            # If we can't write to the log file, print to console as last resort
             print(f"Warning: Could not write to log file: {str(e)}")
+            print(f"Original message - [{timestamp}] {level}: {message}")

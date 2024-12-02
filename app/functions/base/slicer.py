@@ -3,8 +3,8 @@ import os
 import cv2
 import numpy as np
 from datetime import datetime
-from ..base.logger import Logger
-from ..base.preprocessor import preprocess_image
+from .logger import Logger  # Fixed import path
+from .preprocessor import preprocess_image  # Fixed import path
 
 def create_grid_slices(image_path, grid_size, logger):
     """Split image into grid of specified size."""
