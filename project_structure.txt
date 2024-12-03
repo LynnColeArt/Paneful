@@ -1,0 +1,87 @@
+Project Structure for: D:\projects\paneful2\production-copy
+==================================================
++-- app/
++-- obsolete/
++-- .gitattributes
++-- .gitignore
++-- LICENSE.txt
++-- README.md
++-- directory-mapper.py
++-- main.py
++-- project_structure.txt
++-- requirements.txt
++-- settings.cfg
+|   +-- fonts/
+|   +-- functions/
+|   +-- meaningless-words/
+|   +-- ui/
+|   |   +-- RomantiqueInitials.ttf
+|   |   +-- RusticBlackShadow.ttf
+|   |   +-- THICKHEA.TTF
+|   |   +-- Topeka.ttf
+|   |   +-- base/
+|   |   +-- overlay/
+|   |   +-- strategies/
+|   |   +-- transform/
+|   |   +-- __init__.py
+|   |   +-- collage_functions.py
+|   |   +-- compositing_functions.py
+|   |   +-- font_functions.py
+|   |   +-- helper_functions.py
+|   |   +-- init.py
+|   |   +-- layering_functions.py
+|   |   +-- program_functions.py
+|   |   +-- project_operations.py
+|   |   +-- text_effects.py
+|   |   +-- upscaler.py
+|   |   +-- word-placement.py
+|   |   |   +-- __init__.py
+|   |   |   +-- grid.py
+|   |   |   +-- io.py
+|   |   |   +-- large_image_processor.py
+|   |   |   +-- logger.py
+|   |   |   +-- preprocessor.py
+|   |   |   +-- progress_display.py
+|   |   |   +-- settings.py
+|   |   |   +-- slicer.py
+|   |   |   +-- tile_naming.py
+|   |   |   +-- __init__.py
+|   |   |   +-- effects.py
+|   |   |   +-- text.py
+|   |   |   +-- __init__.py
+|   |   |   +-- base_strategy.py
+|   |   |   +-- multi_scale_strategy.py
+|   |   |   +-- standard_strategy.py
+|   |   |   +-- strategies/
+|   |   |   +-- upscalers/
+|   |   |   +-- __init__.py
+|   |   |   +-- assembler.py
+|   |   |   +-- effects.py
+|   |   |   +-- grid_manager.py
+|   |   |   +-- output_manager.py
+|   |   |   +-- overlay.py
+|   |   |   +-- piece_selector.py
+|   |   |   +-- position.py
+|   |   |   +-- subdivision_functions.py
+|   |   |   +-- upscaler.py
+|   |   |   |   +-- __init__.py
+|   |   |   |   +-- base_strategy.py
+|   |   |   |   +-- multi_scale_strategy.py
+|   |   |   |   +-- random_strategy.py
+|   |   |   |   +-- standard_strategy.py
+|   |   |   |   +-- __init__.py
+|   |   |   |   +-- base.py
+|   |   |   |   +-- loader.py
+|   |   |   |   +-- manager.py
+|   |   |   |   +-- ultramix.py
+|   |   +-- ai-art-criticism.txt
+|   |   +-- dadaism.txt
+|   |   +-- dictionary.txt
+|   |   +-- menu_functions.py
+|   +-- app/
+|   |   +-- dadaism-lkg.py
+|   |   +-- dadaism.py
+|   |   +-- fixer.py
+|   |   +-- install.py
+|   |   +-- randomize.py
+|   |   +-- slicer.py

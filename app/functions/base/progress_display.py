@@ -56,7 +56,14 @@ class ProgressDisplay:
                 del self.bars[bar_id]
                 
     def log_message(self, message, level="INFO"):
-        """Log a message without interrupting progress bars."""
+        """Log a message to file without screen output unless it's an error."""
         if self.logger:
             self.logger.log(message, level)
-        tqdm.write(f"{level}: {message}")
+            
+        # Only print warnings and errors to screen
+        if level.upper() in ["WARNING", "ERROR"]:
+            tqdm.write(f"{level}: {message}")
+
+    def progress_update(self, message):
+        """Display a progress update on screen without logging."""
+        tqdm.write(message)
