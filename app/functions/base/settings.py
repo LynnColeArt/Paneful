@@ -7,8 +7,9 @@ def load_settings():
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     
     settings = {
-        'projects_dir': 'projects',  # Default relative to root
-        'rendered_tile_size': 600
+        'projects_dir': 'projects',
+        'rendered_tile_size': 600,
+        'mask_percentages': [50, 60, 70, 80, 90]  # mask settings    
     }
     
     try:
