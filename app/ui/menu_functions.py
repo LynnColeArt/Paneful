@@ -85,14 +85,13 @@ def handle_random_assembly_menu(project_path):
             print("Returning to menu...")
 
 def handle_project_menu(project_path):
-    """Handle project menu logic."""
     while True:
         try:
             choice = display_project_menu(os.path.basename(project_path))
-            project_name = os.path.basename(project_path)
             
             if choice == '1':  # Slice Image
-                grid_size = int(input("Enter grid size (e.g., 10 for 10x10 grid): "))
+                grid_input = input("Enter grid size (default: 10): ").strip()
+                grid_size = int(grid_input) if grid_input else 10
                 slice_and_save(project_path, grid_size)
                 
             elif choice == '2':  # Fix/Restore Tiles

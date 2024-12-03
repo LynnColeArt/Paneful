@@ -1,4 +1,4 @@
-Project Structure for: d:\projects\paneful2\production-copy
+Project Structure for: D:\projects\paneful2\production-copy
 ==================================================
 +-- app/
 +-- obsolete/
@@ -8,6 +8,7 @@ Project Structure for: d:\projects\paneful2\production-copy
 +-- README.md
 +-- directory-mapper.py
 +-- main.py
++-- project_structure.txt
 +-- requirements.txt
 +-- settings.cfg
 |   +-- fonts/
@@ -20,6 +21,7 @@ Project Structure for: d:\projects\paneful2\production-copy
 |   |   +-- Topeka.ttf
 |   |   +-- base/
 |   |   +-- overlay/
+|   |   +-- strategies/
 |   |   +-- transform/
 |   |   +-- __init__.py
 |   |   +-- collage_functions.py
@@ -31,16 +33,27 @@ Project Structure for: d:\projects\paneful2\production-copy
 |   |   +-- program_functions.py
 |   |   +-- project_operations.py
 |   |   +-- text_effects.py
+|   |   +-- upscaler.py
 |   |   +-- word-placement.py
 |   |   |   +-- __init__.py
 |   |   |   +-- grid.py
 |   |   |   +-- io.py
+|   |   |   +-- large_image_processor.py
+|   |   |   +-- logger.py
+|   |   |   +-- preprocessor.py
+|   |   |   +-- progress_display.py
 |   |   |   +-- settings.py
 |   |   |   +-- slicer.py
 |   |   |   +-- tile_naming.py
 |   |   |   +-- __init__.py
 |   |   |   +-- effects.py
 |   |   |   +-- text.py
+|   |   |   +-- __init__.py
+|   |   |   +-- base_strategy.py
+|   |   |   +-- multi_scale_strategy.py
+|   |   |   +-- standard_strategy.py
+|   |   |   +-- strategies/
+|   |   |   +-- upscalers/
 |   |   |   +-- __init__.py
 |   |   |   +-- assembler.py
 |   |   |   +-- effects.py
@@ -50,6 +63,17 @@ Project Structure for: d:\projects\paneful2\production-copy
 |   |   |   +-- piece_selector.py
 |   |   |   +-- position.py
 |   |   |   +-- subdivision_functions.py
+|   |   |   +-- upscaler.py
+|   |   |   |   +-- __init__.py
+|   |   |   |   +-- base_strategy.py
+|   |   |   |   +-- multi_scale_strategy.py
+|   |   |   |   +-- random_strategy.py
+|   |   |   |   +-- standard_strategy.py
+|   |   |   |   +-- __init__.py
+|   |   |   |   +-- base.py
+|   |   |   |   +-- loader.py
+|   |   |   |   +-- manager.py
+|   |   |   |   +-- ultramix.py
 |   |   +-- ai-art-criticism.txt
 |   |   +-- dadaism.txt
 |   |   +-- dictionary.txt
