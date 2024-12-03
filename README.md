@@ -12,23 +12,28 @@ Paneful provides tools for:
 - Managing multiple image variations and outputs
 
 ## Structure
-	root/
-	├── app/                    # Main application package
-	│   ├── functions/         # Core functionality
-	│   │   ├── base/         # Core utilities
-	│   │   ├── transform/    # Image transformation modules
-	│   │   └── overlay/      # Text and effect overlays
-	│   ├── ui/               # User interface modules
-	│   ├── fonts/            # Font resources
-	│   └── meaningless-words/ # Text resources
-	├── projects/              # Project data (not included)
-	├── main.py               # Application entry point
-	└── settings.cfg          # Configuration file
+
+There's a more detailed map that comes with this distribution.
+
+## Structure
+
+    paneful/
+    ├── app/                     # Main application package
+    │   ├── functions/          # Core functionality
+    │   ├── ui/                # User interface
+    │   └── resources/         # Application resources
+    ├── projects/              # Project data
+    ├── config/                # Configuration files
+    │   ├── settings.cfg      # Global settings
+    │   └── logging.cfg       # Logging configuration
+    ├── README.md             # Documentation
+    └── main.py               # Application entry point
+	
 ## Installation 
 Clone the repository 
 
 Install requirements: 
-```bash pip install -r requirements.txt```
+```pip install -r requirements.txt```
 
 ## Configuration
 
@@ -62,42 +67,57 @@ Basic workflow:
 
 Each project contains:
 
-	project_name/
-	├── base-image/       # Original images
-	├── base-tiles/       # Sliced tiles
-	├── rendered-tiles/   # Processed variations
-	├── mask-directory/   # Tile masks
-	└── collage-out/     # Final outputs
-		├── restored/    # Exact assemblies
-		└── randomized/  # Random variations
+    project_name/
+    ├── base_image/          # Original images 
+    ├── preprocessed/        # Normalized images
+    ├── base_tiles/         # Sliced tiles
+    ├── rendered_tiles/     # Processed variations
+    ├── maps/              # Image maps for AI processing
+    │   ├── masks/        # Tile masks
+    │   ├── canny/        # Edge detection maps
+    │   ├── depth/        # Depth maps
+    │   └── normal/       # Normal maps
+    ├── collage_out/      # Final outputs
+    │   ├── restored/    # Exact assemblies
+    │   └── randomized/  # Random variations
+    └── logs/            # Project logs
 
 ## Todo
 
-Finish building out the basics, then 
-
-* Clean up the functions directory so it makes more sense, now that we know where we're going.
-* Refactor project structure, making it a little easier to follow. Thinking, something like this.
-
-
-	project_name/
-	├── batch_in/                    # Bulk input processing
-	├── batch_out/                   # Bulk output processing
-	├── base_collage_image/          # Original images for collage
-	├── base_collage_tiles/          # Sliced tiles
-	├── rendered_collage_tiles_in/   # Rendered variations
-	└── rendered_collage_out/        # Final collage outputs
-
-
-* Re-add Dithering and batch webp conversion.
-* The "Dadaism" word collages are broken. There's also a list of things that I've written for other apps that should probably go here.
-* Video processing functionality for collages and batches. I want it to be two way as well. 
-* Additional and more quirky types of Dadaism, including more conventional looking collages. 
-* A Gradio UI 
-* Integration with Comfy UI or Automatic for a one stop workflow.
 
 # Changelog
 
-## [1.0.0] - 2024-11-28
+## [0.1.0.9] - 2024-12-03
+### Added
+- Comprehensive logging system with dated log files
+- Progress visualization with detailed status bars
+- Piece-level upscaling for consistent tile sizes
+- Pre-processor for image format standardization
+- Support for HEIF/HEIC formats
+- Project-specific settings overrides
+
+### Changed
+- Standardized directory naming conventions
+- Reduced subdivision scales to 5x5 and 10x10 only
+- Moved to modular upscaler architecture
+- Improved settings management with INI format
+- Enhanced project creation process with validation
+
+### Fixed
+- Color space handling and ICC profile management
+- Memory handling for large image processing
+- Directory structure consistency
+- Progress tracking accuracy
+- Image format conversion reliability
+
+### Technical Details
+- Added type hints throughout codebase
+- Improved error handling and recovery
+- Implemented strategy pattern for assembly
+- Enhanced resource management for large files
+- Added plugin architecture for upscalers
+
+## [0.1.0.0] - 2024-11-28
 ### Added
 - Multi-scale assembly strategy that combines different grid sizes (5x5, 10x10, 15x15, 20x20)
 - Directory-specific tile selection per subdivided space
