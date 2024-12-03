@@ -88,6 +88,11 @@ Each project contains:
 # Changelog
 
 ## [0.1.0.9] - 2024-12-03
+
+The big change in this one is the completed upscaler implementation.
+
+Using ultrasharp for the job, because it's a very sensible choice, but I also added a framework that'll let you swap them if you want.
+
 ### Added
 - Comprehensive logging system with dated log files
 - Progress visualization with detailed status bars

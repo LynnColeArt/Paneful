@@ -2,8 +2,8 @@
 import os
 import cv2
 import numpy as np
-from datetime import datetime
 from PIL import Image
+from datetime import datetime
 from .logger import Logger
 from .preprocessor import preprocess_image
 from .large_image_processor import LargeImageProcessor
@@ -63,6 +63,7 @@ def create_grid_slices(image_path, grid_size, logger):
         logger.log(f"Error in create_grid_slices: {str(e)}", "ERROR")
         return None, None
 
+
 def upscale_piece(piece, target_size, upscaler):
     """Upscale a single piece to target size."""
     # Convert CV2 image to PIL
@@ -83,6 +84,36 @@ def slice_and_save(project_path, grid_size):
     progress = ProgressDisplay(logger)
     progress.log_message(f"Starting slice operation with grid size {grid_size}x{grid_size}")
 
+    def create_masks(mask_directory, height, width, piece_size, progress, percentages=[50, 60, 70, 80, 90]):
+        """Create mask files for different visibility percentages."""
+        progress.log_message(f"Creating masks for percentages: {percentages}")
+        
+        with progress.progress_context(len(percentages), "Creating masks", "mask", "masks") as mask_bar:
+            for percentage in percentages:
+                progress.log_message(f"Creating {percentage}% visibility mask")
+                mask = np.zeros((height, width), dtype=np.uint8)
+                visible_size = int(piece_size * percentage / 100)
+                border_size = (piece_size - visible_size) // 2
+
+                total_grid_pieces = (height // piece_size) * (width // piece_size)
+                progress.log_message(f"Mask will affect {total_grid_pieces} grid positions")
+
+                for row in range(0, height, piece_size):
+                    for col in range(0, width, piece_size):
+                        mask[row:row + border_size, col:col + piece_size] = 255
+                        mask[row + piece_size - border_size:row + piece_size, col:col + piece_size] = 255
+                        mask[row:row + piece_size, col:col + border_size] = 255
+                        mask[row:row + piece_size, col + piece_size - border_size:col + piece_size] = 255
+
+                mask_filename = f"Mask_{percentage}.png"
+                mask_path = os.path.join(mask_directory, mask_filename)
+                try:
+                    cv2.imwrite(mask_path, mask)
+                    progress.log_message(f"Saved mask: {mask_filename}")
+                    mask_bar.update(1)
+                except Exception as e:
+                    progress.log_message(f"Error saving mask {mask_filename}: {str(e)}", "ERROR")
+
     # Load settings for target size
     settings = load_settings()
     target_size = settings.get('rendered_tile_size', 600)
@@ -93,7 +124,7 @@ def slice_and_save(project_path, grid_size):
 
     base_image_dir = os.path.join(project_path, "base_image")
     base_tiles_dir = os.path.join(project_path, "base_tiles")
-    mask_directory = os.path.join(project_path, "mask_directory")
+    mask_directory = os.path.join(project_path, "maps/masks")  # Updated path
     preprocessed_dir = os.path.join(base_image_dir, "preprocessed")
 
     # Ensure directories exist
@@ -142,7 +173,7 @@ def slice_and_save(project_path, grid_size):
 
             padded_image, piece_size = result
             
-            if padded_image == "large_image":
+            if isinstance(padded_image, str) and padded_image == "large_image":  # Fixed comparison
                 # Handle large image using LargeImageProcessor
                 progress.progress_update("Processing large image...")
                 try:
