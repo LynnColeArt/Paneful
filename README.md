@@ -1,3 +1,15 @@
+*Note:* Had a bug this weekend on 12/1 that I didn't catch.
+It's resolved now. Dev branch probably doesn't work at the moment. Not all the controls are automated in a sensible way, and Dadaism text overlays are still mostly broken. All of this is being worked on.
+
+Now that the app's gotten a little bigger, it's time to think more about the actual design of the thing. Coding patterns, best practices, non circular references! The fun stuffs.
+
+Scope creep on this one has been an adventure, but I kinda love it.
+I'm here for the adventure of it.
+It's a gradual iterative process, as I work these unrelated oneoff utilities into a more cohesive and sophisticated app.
+
+Talk soon babies.
+
+--Lynn
 
 # Paneful
 
