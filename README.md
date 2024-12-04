@@ -1,4 +1,4 @@
-*Note:* Looks like there's a cascading import bug in the 0.1.0.9 Release. Working on it today. Also dropping everything, after that, to implement unit tests. If we weren't on ai ehanced time scales, and we were this far along, not having unit tests at this point in the project would be a cause for concern. But, keep in mind that this project is only two weeks old. We're doing great. Just bear with me as coax this thing back to Stable.
+*Note:* Looks like there's a cascading import bug in the 0.1.0.9 Release. Working on it today. Also dropping everything, after that, to implement unit tests. If we weren't on ai ehanced time scales, and we were this far along, not having unit tests at this point in the project would be a cause for concern. But, keep in mind that this project is only two weeks old. We're doing great. Just bear with me as I coax this thing back to Stable.
 
 Talk soon babies.
 
