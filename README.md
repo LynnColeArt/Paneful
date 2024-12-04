@@ -1,3 +1,5 @@
+*Note* Looks like there's a cascading import bug in the 0.1.0.9 Release. Working on it today. Also dropping everything, after that, to implement unit tests. If we weren't on ai ehanced time scales, and we were this far along, not having unit tests at this point in the project would be a cause for concern. But, keep in mind that this project is only two weeks old. We're doing great.
+
 *Note:* Had a bug this weekend on 12/1 that I didn't catch.
 It's resolved now. Dev branch probably doesn't work at the moment. Not all the controls are automated in a sensible way, and Dadaism text overlays are still mostly broken. All of this is being worked on.
 
