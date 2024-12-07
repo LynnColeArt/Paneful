@@ -8,7 +8,8 @@ def load_settings():
     
     settings = {
         'projects_dir': 'projects',  # Default relative to root
-        'rendered_tile_size': 600
+        'rendered_tile_size': 1024,
+        'quality_level': 'ultra'
     }
     
     try:

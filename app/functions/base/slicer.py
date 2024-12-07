@@ -3,16 +3,60 @@
 import os
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter, ImageEnhance
 from .preprocessor import preprocess_image
-from ..upscalers import UltramixUpscaler
-from ..base.logger import Logger
+
+def enhance_piece(pil_piece, target_size, quality_level='high'):
+    """
+    Enhance a single piece with configurable quality settings.
+    
+    Args:
+        pil_piece: PIL Image piece to enhance
+        target_size: Desired output size
+        quality_level: 'normal', 'high', or 'ultra' for different enhancement levels
+    """
+    try:
+        # Step 1: Initial upscale
+        if quality_level == 'normal':
+            # Basic Lanczos upscale
+            upscaled = pil_piece.resize((target_size, target_size), Image.Resampling.LANCZOS)
+            return upscaled
+            
+        # Step 2: Enhanced upscaling
+        if quality_level == 'high':
+            # Lanczos with edge enhancement
+            upscaled = pil_piece.resize((target_size, target_size), Image.Resampling.LANCZOS)
+            # Enhance edges
+            enhancer = ImageEnhance.Sharpness(upscaled)
+            enhanced = enhancer.enhance(1.5)  # Moderate sharpening
+            return enhanced
+            
+        if quality_level == 'ultra':
+            # Multi-step enhancement for maximum quality
+            # 1. Initial upscale with Bicubic
+            initial = pil_piece.resize((target_size, target_size), Image.Resampling.BICUBIC)
+            
+            # 2. Edge enhancement
+            edge_enhanced = initial.filter(ImageFilter.EDGE_ENHANCE)
+            
+            # 3. Careful sharpening
+            enhancer = ImageEnhance.Sharpness(edge_enhanced)
+            sharpened = enhancer.enhance(1.3)  # Subtle sharpening
+            
+            # 4. Subtle contrast adjustment
+            contrast = ImageEnhance.Contrast(sharpened)
+            final = contrast.enhance(1.1)  # Slight contrast boost
+            
+            return final
+            
+    except Exception as e:
+        print(f"Warning: Enhancement failed, falling back to basic resize: {e}")
+        return pil_piece.resize((target_size, target_size), Image.Resampling.LANCZOS)
 
 def create_grid_slices(image_path, grid_size, project_config=None):
-    """Split image into grid of specified size with optional upscaling."""
-    logger = Logger()
+    """Split image into grid of specified size."""
     try:
-        logger.log(f"Processing image: {image_path}", module="create_grid_slices")
+        print(f"Processing image: {image_path}")
         preprocessed_path = preprocess_image(
             image_path, 
             os.path.dirname(image_path),
@@ -20,18 +64,17 @@ def create_grid_slices(image_path, grid_size, project_config=None):
         )
         
         if not preprocessed_path:
-            logger.log(f"Failed to preprocess image: {image_path}", level="ERROR", module="create_grid_slices")
-            return None, None
+            raise ValueError(f"Failed to preprocess image: {preprocessed_path}")
             
         image = cv2.imread(preprocessed_path)
         if image is None:
-            logger.log(f"Failed to load preprocessed image: {preprocessed_path}", level="ERROR", module="create_grid_slices")
-            return None, None
+            raise ValueError(f"Failed to load preprocessed image: {preprocessed_path}")
             
         height, width, _ = image.shape
         piece_size = min(width // grid_size, height // grid_size)
-        logger.log(f"Original dimensions: {width}x{height}, Piece size: {piece_size}", module="create_grid_slices")
+        print(f"Original dimensions: {width}x{height}, Piece size: {piece_size}")
         
+        # Handle padding
         pad_bottom = max(0, (grid_size * piece_size) - height)
         pad_right = max(0, (grid_size * piece_size) - width)
         
@@ -42,120 +85,115 @@ def create_grid_slices(image_path, grid_size, project_config=None):
             cv2.BORDER_CONSTANT, 
             value=[0, 0, 0]
         )
-        logger.log(f"Padded dimensions: {padded_image.shape}", module="create_grid_slices")
+        print(f"Padded dimensions: {padded_image.shape}")
         
+        # Clean up preprocessed file if it's different from original
         if preprocessed_path != image_path:
             try:
                 os.remove(preprocessed_path)
             except Exception as e:
-                logger.log(f"Warning: Could not remove temporary file {preprocessed_path}: {e}", level="WARNING", module="create_grid_slices")
+                print(f"Warning: Could not remove temporary file {preprocessed_path}: {e}")
 
         return padded_image, piece_size
 
     except Exception as e:
-        logger.log(f"Error in create_grid_slices: {e}", level="ERROR", module="create_grid_slices")
+        print(f"Error in create_grid_slices: {e}")
         return None, None
 
 def slice_and_save(project_path, grid_size):
     """Slice images and save to appropriate directories."""
-    logger = Logger()
-    logger.log(f"Starting slice_and_save with project_path: {project_path}, grid_size: {grid_size}", module="slice_and_save")
+    print(f"\nStarting slice_and_save with project_path: {project_path}, grid_size: {grid_size}")
     
     base_image_dir = os.path.join(project_path, "base-image")
     base_tiles_dir = os.path.join(project_path, "base-tiles")
     mask_directory = os.path.join(project_path, "mask-directory")
 
+    # Load project configuration
     try:
         from ..program_functions import load_project_config
         project_config = load_project_config(project_path)
-        logger.log(f"Loaded project config: {project_config}", module="slice_and_save")
-        
-        upscaler = UltramixUpscaler()
-        logger.log(f"Initialized upscaler: {upscaler}", module="slice_and_save")
-        
         target_size = project_config.get('upscale_size', 1024)
-        logger.log(f"Target size from config: {target_size}", module="slice_and_save")
-        
+        quality_level = project_config.get('quality_level', 'high')  # New config option
+        print(f"Target size: {target_size}, Quality level: {quality_level}")
     except Exception as e:
-        logger.log(f"Warning: Could not initialize upscaler: {e}", level="WARNING", module="slice_and_save")
-        upscaler = None
-        target_size = None
+        print(f"Warning: Could not load project config: {e}")
+        target_size = 1024
+        quality_level = 'high'
 
+    # Ensure directories exist
     for directory in [base_tiles_dir, mask_directory]:
         os.makedirs(directory, exist_ok=True)
 
-    logger.log(f"Scanning directory: {base_image_dir}", module="slice_and_save")
-    for filename in os.listdir(base_image_dir):
-        supported = filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.heic', '.heif', '.webp', '.tiff'))
-        logger.log(f"Found file: {filename}, Supported: {supported}", module="slice_and_save")
+    # Process each image in base-image directory
+    print(f"\nScanning directory: {base_image_dir}")
+    supported_formats = ('.png', '.jpg', '.jpeg', '.bmp', '.heic', '.heif', '.webp', '.tiff')
+    
+    # List and filter files
+    files = os.listdir(base_image_dir)
+    image_files = [f for f in files if f.lower().endswith(supported_formats)]
+    print(f"\nFound {len(image_files)} supported image files")
 
-    for filename in os.listdir(base_image_dir):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.heic', '.heif', '.webp', '.tiff')):
-            logger.log(f"Processing file: {filename}", module="slice_and_save")
-            image_path = os.path.join(base_image_dir, filename)
-            padded_image, piece_size = create_grid_slices(image_path, grid_size)
+    # Process supported files
+    for filename in image_files:
+        print(f"\nProcessing file: {filename}")
+        image_path = os.path.join(base_image_dir, filename)
+        padded_image, piece_size = create_grid_slices(image_path, grid_size)
+        
+        if padded_image is None or piece_size is None:
+            print(f"Skipping failed image: {filename}")
+            continue
             
-            if padded_image is None or piece_size is None:
-                logger.log(f"Skipping failed image: {filename}", level="WARNING", module="slice_and_save")
-                continue
+        height, width = padded_image.shape[:2]
+        print(f"Processing grid: {width}x{height} in {piece_size}px pieces")
+
+        # Process tiles
+        total_pieces = (height // piece_size) * (width // piece_size)
+        processed_pieces = 0
+        
+        for row in range(0, height, piece_size):
+            for col in range(0, width, piece_size):
+                piece = padded_image[row:row + piece_size, col:col + piece_size]
                 
-            height, width = padded_image.shape[:2]
-            logger.log(f"Processing grid: {width}x{height} in {piece_size}px pieces", module="slice_and_save")
-
-            total_pieces = (height // piece_size) * (width // piece_size)
-            processed_pieces = 0
-            
-            for row in range(0, height, piece_size):
-                for col in range(0, width, piece_size):
-                    piece = padded_image[
-                        row:row + piece_size, 
-                        col:col + piece_size
-                    ]
+                if piece.shape[0] == piece_size and piece.shape[1] == piece_size:
+                    piece_filename = f"{row // piece_size}_{col // piece_size}.png"
+                    processed_pieces += 1
+                    print(f"Processing piece {processed_pieces}/{total_pieces}: {piece_filename}")
                     
-                    if piece.shape[0] == piece_size and piece.shape[1] == piece_size:
-                        piece_filename = f"{row // piece_size}_{col // piece_size}.png"
-                        processed_pieces += 1
-                        logger.log(f"Processing piece {processed_pieces}/{total_pieces}: {piece_filename}", module="slice_and_save")
-                        
-                        if upscaler and target_size:
-                            try:
-                                logger.log(f"Attempting to upscale {piece_filename} to {target_size}x{target_size}", module="slice_and_save")
-                                piece_rgb = cv2.cvtColor(piece, cv2.COLOR_BGR2RGB)
-                                pil_piece = Image.fromarray(piece_rgb)
-                                
-                                upscaled_piece = upscaler.upscale(pil_piece, target_size)
-                                
-                                if upscaled_piece:
-                                    logger.log(f"Successfully upscaled {piece_filename}", module="slice_and_save")
-                                    upscaled_array = np.array(upscaled_piece)
-                                    if len(upscaled_array.shape) == 3 and upscaled_array.shape[2] >= 3:
-                                        piece_bgr = cv2.cvtColor(upscaled_array, cv2.COLOR_RGB2BGR)
-                                        out_path = os.path.join(base_tiles_dir, piece_filename)
-                                        cv2.imwrite(out_path, piece_bgr)
-                                        logger.log(f"Saved upscaled piece to: {out_path}", module="slice_and_save")
-                                    else:
-                                        logger.log(f"Warning: Unexpected array shape after upscaling: {upscaled_array.shape}", level="WARNING", module="slice_and_save")
-                                        cv2.imwrite(os.path.join(base_tiles_dir, piece_filename), piece)
-                                else:
-                                    logger.log(f"Warning: Upscaling failed for {piece_filename}, saving original", level="WARNING", module="slice_and_save")
-                                    cv2.imwrite(os.path.join(base_tiles_dir, piece_filename), piece)
-                                    
-                            except Exception as e:
-                                logger.log(f"Error upscaling piece {piece_filename}: {e}", level="ERROR", module="slice_and_save")
-                                cv2.imwrite(os.path.join(base_tiles_dir, piece_filename), piece)
+                    try:
+                        if target_size and target_size != piece_size:
+                            # Convert BGR to RGB for PIL
+                            piece_rgb = cv2.cvtColor(piece, cv2.COLOR_BGR2RGB)
+                            pil_piece = Image.fromarray(piece_rgb)
+                            
+                            # Enhanced upscaling
+                            enhanced_piece = enhance_piece(pil_piece, target_size, quality_level)
+                            
+                            # Convert back to BGR for saving
+                            enhanced_array = np.array(enhanced_piece)
+                            piece_bgr = cv2.cvtColor(enhanced_array, cv2.COLOR_RGB2BGR)
+                            out_path = os.path.join(base_tiles_dir, piece_filename)
+                            cv2.imwrite(out_path, piece_bgr)
                         else:
-                            logger.log(f"Upscaler or target size not available, saving original size", module="slice_and_save")
+                            # Save original size if no upscaling needed
                             out_path = os.path.join(base_tiles_dir, piece_filename)
                             cv2.imwrite(out_path, piece)
-                            logger.log(f"Saved original size piece to: {out_path}", module="slice_and_save")
+                            
+                        print(f"Saved piece to: {out_path}")
+                            
+                    except Exception as e:
+                        print(f"Error processing piece {piece_filename}: {e}")
+                        # Fallback to saving original piece if processing fails
+                        out_path = os.path.join(base_tiles_dir, piece_filename)
+                        cv2.imwrite(out_path, piece)
 
-            logger.log(f"Finished processing {processed_pieces} pieces", module="slice_and_save")
-            create_masks(mask_directory, height, width, piece_size)
+        print(f"Finished processing {processed_pieces} pieces")
+
+    # Create masks
+    create_masks(mask_directory, height, width, piece_size)
 
 def create_masks(mask_directory, height, width, piece_size, percentages=[50, 60, 70, 80, 90]):
     """Create mask files for different visibility percentages."""
-    logger = Logger()
-    logger.log(f"Creating masks in: {mask_directory}", module="create_masks")
+    print(f"Creating masks in: {mask_directory}")
     for percentage in percentages:
         mask = np.zeros((height, width), dtype=np.uint8)
         visible_size = int(piece_size * percentage / 100)
@@ -170,4 +208,4 @@ def create_masks(mask_directory, height, width, piece_size, percentages=[50, 60,
 
         mask_path = os.path.join(mask_directory, f"Mask_{percentage}.png")
         cv2.imwrite(mask_path, mask)
-        logger.log(f"Created mask {percentage}%: {mask_path}", module="create_masks")
+        print(f"Created mask {percentage}%: {mask_path}")
