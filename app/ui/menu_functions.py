@@ -1,11 +1,11 @@
-# app/ui/menu_functions.py
 import os
-from ..functions.transform.subdivision_functions import process_all_variations
 from ..functions.transform import Assembler
 from ..functions.program_functions import (
     create_new_project,
     scan_for_projects,
-    create_dadaist_collage_with_words
+    create_dadaist_collage_with_words,
+    load_project_config,
+    reset_project_config
 )
 from ..functions.base.slicer import slice_and_save
 
@@ -23,7 +23,7 @@ def display_project_menu(project_name):
     print("1. Slice Image")
     print("2. Fix/Restore Tiles")
     print("3. Random Assembly Options")
-    print("4. Subdivide Tiles for Multi-Scale Assembly")
+    print("4. Reset Project Config")
     print("5. Back to Main Menu")
     return input("Select an option: ")
 
@@ -44,9 +44,8 @@ def display_random_assembly_menu():
     """Display random assembly menu and get user choice."""
     print("\nRandom Assembly Options")
     print("1. Basic Random Assembly")
-    print("2. Multi-Scale Assembly")
-    print("3. Create Dadaist Collage")
-    print("4. Back to Project Menu")
+    print("2. Create Dadaist Collage")
+    print("3. Back to Project Menu")
     return input("Select an option: ")
 
 def handle_random_assembly_menu(project_path):
@@ -54,7 +53,8 @@ def handle_random_assembly_menu(project_path):
     while True:
         try:
             choice = display_random_assembly_menu()
-            project_name = os.path.basename(project_path)
+            project_config = load_project_config(project_path)
+            project_name = project_config['name']
             rendered_tiles_dir = os.path.join(project_path, "rendered-tiles")
             collage_out_dir = os.path.join(project_path, "collage-out")
             
@@ -63,18 +63,12 @@ def handle_random_assembly_menu(project_path):
                 assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
                 assembler.assemble(strategy='random', run_number=run_number)
                 
-            elif choice == '2':  # Multi-Scale Assembly
-                run_number = int(input("How many variants to generate? (default: 1) ") or "1")
-                assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
-                assembler.set_multi_scale_strategy(project_path)
-                assembler.assemble(strategy='multi-scale', run_number=run_number)
-                
-            elif choice == '3':  # Create Dadaist Collage
+            elif choice == '2':  # Create Dadaist Collage
                 word_count = int(input("How many words to place (default 10)? ") or "10")
                 dictionary_path = select_dictionary()
                 create_dadaist_collage_with_words(project_path, word_count, dictionary_path)
                 
-            elif choice == '4':  # Back to Project Menu
+            elif choice == '3':  # Back to Project Menu
                 break
                 
         except KeyboardInterrupt:
@@ -88,8 +82,8 @@ def handle_project_menu(project_path):
     """Handle project menu logic."""
     while True:
         try:
-            choice = display_project_menu(os.path.basename(project_path))
-            project_name = os.path.basename(project_path)
+            project_config = load_project_config(project_path)
+            choice = display_project_menu(project_config['name'])
             
             if choice == '1':  # Slice Image
                 grid_size = int(input("Enter grid size (e.g., 10 for 10x10 grid): "))
@@ -98,19 +92,15 @@ def handle_project_menu(project_path):
             elif choice == '2':  # Fix/Restore Tiles
                 rendered_tiles_dir = os.path.join(project_path, "rendered-tiles")
                 collage_out_dir = os.path.join(project_path, "collage-out")
-                assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
+                assembler = Assembler(project_config['name'], rendered_tiles_dir, collage_out_dir)
                 assembler.assemble(strategy='exact')
                 
             elif choice == '3':  # Random Assembly Options
                 handle_random_assembly_menu(project_path)
                 
-            elif choice == '4':  # Subdivide Tiles for Multi-Scale Assembly
-                print("Starting processing of all variations...")
-                try:
-                    process_all_variations(project_path)
-                    print("Successfully processed all variations.")
-                except Exception as e:
-                    print(f"Error processing variations: {e}")
+            elif choice == '4':  # Reset Project Config
+                if reset_project_config(project_path):
+                    print("Project configuration has been reset to defaults")
                 
             elif choice == '5':  # Back to Main Menu
                 break
