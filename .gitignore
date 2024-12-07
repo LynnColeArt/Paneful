@@ -21,7 +21,9 @@ dist/
 examples/
 projects/
 app/projects/
+resources/upscalers/
 ai_assets/
+context_files/
 
 # Ignore system-specific files
 .DS_Store

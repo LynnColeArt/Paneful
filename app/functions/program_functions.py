@@ -33,6 +33,11 @@ def create_new_project(base_dir):
             'name': project_name,
             'upscale_size': 1024,
             'base_tile_size': 600
+        },
+        'upscaler': {
+            'type': 'ultramix',  # default upscaler
+            'target_size': 1024, # can override project upscale_size
+            'model_path': None   # optional, for custom models
         }
     }
     
