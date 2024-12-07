@@ -8,34 +8,22 @@ class Logger:
     
     def __init__(self, app_root=None):
         """Initialize logger with app root path."""
-        self.app_root = self._find_app_root(app_root) if app_root else os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        print("Logger.__init__ called")  # Debug print
+        if app_root is None:
+            self.app_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        else:
+            self.app_root = app_root
         self.log_path = self._ensure_log_file()
-
-    def _find_app_root(self, path):
-        """Find the application root directory."""
-        current = os.path.abspath(path)
-        
-        # If path is a file, start from its directory
-        if os.path.isfile(current):
-            current = os.path.dirname(current)
-            
-        # Look for app root markers (like settings.cfg)
-        while current != os.path.dirname(current):  # Stop at root directory
-            if os.path.exists(os.path.join(current, "settings.cfg")):
-                return current
-            current = os.path.dirname(current)
-            
-        # If no markers found, use the provided path
-        return path
 
     def _ensure_log_file(self):
         """Ensure log file exists and create it if needed."""
-        # Create logs directory in app root
+        print("Logger._ensure_log_file called")  # Debug print
+        # Create logs directory in app root if it doesn't exist
         log_dir = os.path.join(self.app_root, "logs")
         os.makedirs(log_dir, exist_ok=True)
         
         # Create dated log file
-        date_str = datetime.now().strftime("%m-%d-%y")
+        date_str = datetime.now().strftime("%Y-%m-%d")
         log_path = os.path.join(log_dir, f"paneful-{date_str}.log")
         
         try:
@@ -52,6 +40,7 @@ class Logger:
 
     def log(self, message, level="INFO", module=None):
         """Write a message to the log file."""
+        print(f"Logger.log called with message: {message}")  # Debug print
         try:
             if not self.log_path:
                 print(f"Warning: No log file available - {level}: {message}")

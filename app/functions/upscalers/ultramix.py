@@ -6,7 +6,10 @@ import torch.nn as nn
 import torch_directml
 import numpy as np
 from PIL import Image
-from .base import BaseUpscaler
+from ..base import Logger
+
+# Initialize logger
+logger = Logger()
 
 class ResidualDenseBlock(nn.Module):
     """Residual Dense Block for RRDB architecture."""
@@ -69,38 +72,37 @@ class RRDBNet(nn.Module):
         feat = self.conv_last(self.lrelu(self.conv_hr(feat)))
         return feat
 
-class UltramixUpscaler(BaseUpscaler):
+class UltramixUpscaler:
     """Default upscaler using high-quality upscaling."""
     
     def __init__(self):
-        super().__init__("Ultramix")
         self.model = None
-        print("Starting device detection...")
+        logger.log("Starting device detection...", module="UltramixUpscaler")
         self.device = self._get_device()
         self._load_model()
         
     def _get_device(self):
         """Determine available device with DirectML support for AMD GPUs."""
         try:
-            print("Checking for DirectML devices...")
+            logger.log("Checking for DirectML devices...", module="UltramixUpscaler")
             dml_device_count = torch_directml.device_count()
-            print(f"DirectML devices found: {dml_device_count}")
+            logger.log(f"DirectML devices found: {dml_device_count}", module="UltramixUpscaler")
             
             if dml_device_count > 0:
                 for i in range(dml_device_count):
                     device_name = torch_directml.device_name(i)
-                    print(f"Found DirectML device {i}: {device_name}")
+                    logger.log(f"Found DirectML device {i}: {device_name}", module="UltramixUpscaler")
                 
                 device = torch_directml.device(0)
                 selected_name = torch_directml.device_name(0)
-                print(f"Selected DirectML device: {selected_name}")
+                logger.log(f"Selected DirectML device: {selected_name}", module="UltramixUpscaler")
                 return device
             
-            print("No DirectML devices available")
+            logger.log("No DirectML devices available", module="UltramixUpscaler")
             return torch.device("cpu")
                 
         except Exception as e:
-            print(f"Error in DirectML initialization: {str(e)}")
+            logger.log(f"Error in DirectML initialization: {str(e)}", level="ERROR", module="UltramixUpscaler")
             return torch.device("cpu")
     
     def _get_model_path(self):
@@ -109,29 +111,29 @@ class UltramixUpscaler(BaseUpscaler):
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
         model_dir = os.path.join(root_dir, 'resources', 'upscalers', 'ultramix')
         
-        print(f"Looking for models in: {model_dir}")
+        logger.log(f"Looking for models in: {model_dir}", module="UltramixUpscaler")
         
         if os.path.exists(model_dir):
             for file in os.listdir(model_dir):
                 if file.endswith(('.pt', '.pth')):
-                    print(f"Found model: {file}")
+                    logger.log(f"Found model: {file}", module="UltramixUpscaler")
                     return os.path.join(model_dir, file)
-        print("No model files found in resources/upscalers/ultramix/")
+        logger.log("No model files found in resources/upscalers/ultramix/", module="UltramixUpscaler")
         return None
-
+        
     def _load_model(self):
         """Load model from resources if available."""
         model_path = self._get_model_path()
         if not model_path:
-            print("No model found, will use Lanczos upscaling")
+            logger.log("No model found, will use Lanczos upscaling", module="UltramixUpscaler")
             return
             
         try:
-            print(f"Loading model from {model_path} using device: {self.device}")
+            logger.log(f"Loading model from {model_path} using device: {self.device}", module="UltramixUpscaler")
             
             if model_path.endswith('.pt'):
                 self.model = torch.jit.load(model_path)
-                print("Loaded .pt model successfully")
+                logger.log("Loaded .pt model successfully", module="UltramixUpscaler")
             else:  # .pth format
                 self.model = RRDBNet(
                     num_in_ch=3,
@@ -140,84 +142,86 @@ class UltramixUpscaler(BaseUpscaler):
                     num_block=23,
                     num_grow_ch=32
                 )
-                
-                # Load to CPU first, then convert keys
+                # Load to CPU first, then move to DirectML device
                 state_dict = torch.load(model_path, map_location='cpu')
                 
-                # Convert state dict keys
-                converted_dict = {}
-                for k, v in state_dict.items():
-                    # Remove 'model.' prefix if present
-                    new_k = k.replace('model.', '')
-                    
-                    # Convert body structure keys
-                    if 'sub.' in new_k:
-                        # Convert model.1.sub.0.RDB1.conv1.0.weight to body.0.rdb1.convs.0.weight
-                        parts = new_k.split('.')
-                        if len(parts) >= 4 and 'RDB' in parts[3]:
-                            block_num = parts[2]
-                            rdb_num = parts[3].replace('RDB', '').lower()
-                            conv_num = parts[4].replace('conv', '')
-                            new_k = f"body.{block_num}.rdb{rdb_num}.convs.{int(conv_num)-1}"
-                            if len(parts) > 5:
-                                new_k = f"{new_k}.{parts[-1]}"
-                    
-                    # Store converted key
-                    converted_dict[new_k] = v
-                    
-                # Try to load with converted keys
-                try:
-                    print("Attempting to load with converted keys...")
-                    self.model.load_state_dict(converted_dict, strict=False)
-                    print("Model loaded successfully with converted keys")
-                except Exception as e:
-                    print(f"Error loading with converted keys: {e}")
-                    print("Attempting direct load...")
-                    # Fall back to direct loading if conversion fails
-                    self.model.load_state_dict(state_dict, strict=False)
-                    print("Model loaded successfully with direct keys")
+                if 'params_ema' in state_dict:
+                    self.model.load_state_dict(state_dict['params_ema'])
+                    logger.log("Loaded model with EMA parameters", module="UltramixUpscaler")
+                elif 'params' in state_dict:
+                    self.model.load_state_dict(state_dict['params'])
+                    logger.log("Loaded model with standard parameters", module="UltramixUpscaler")
+                else:
+                    self.model.load_state_dict(state_dict)
+                    logger.log("Loaded model with direct state dict", module="UltramixUpscaler")
             
             # Move model to device after loading
             self.model = self.model.to(self.device)
             self.model.eval()
-            print(f"Model successfully loaded and moved to {self.device}")
+            logger.log(f"Model successfully loaded and moved to {self.device}", module="UltramixUpscaler")
             
         except Exception as e:
-            print(f"Error loading model: {e}")
+            logger.log(f"Error loading model: {e}", level="ERROR", module="UltramixUpscaler")
             import traceback
-            traceback.print_exc()
+            logger.log(traceback.format_exc(), level="ERROR", module="UltramixUpscaler")
             self.model = None
 
     def upscale(self, image: Image.Image, target_size: int) -> Image.Image:
         try:
+            # Log input image details
+            logger.log(f"Input image mode: {image.mode}, size: {image.size}", module="UltramixUpscaler")
+            
             if image.mode != 'RGBA':
                 image = image.convert('RGBA')
+                logger.log("Converted image to RGBA mode", module="UltramixUpscaler")
             
             if self.model:
                 # Convert PIL to tensor
                 img_array = np.array(image)
+                logger.log(f"Numpy array shape: {img_array.shape}, dtype: {img_array.dtype}, value range: {img_array.min()}-{img_array.max()}", 
+                          module="UltramixUpscaler")
+                
                 img_tensor = torch.from_numpy(img_array.transpose(2, 0, 1)).float()
+                logger.log(f"Initial tensor shape: {img_tensor.shape}, device: {img_tensor.device}, value range: {img_tensor.min():.2f}-{img_tensor.max():.2f}", 
+                          module="UltramixUpscaler")
+                
                 img_tensor = img_tensor[:3]  # Take only RGB channels
+                logger.log("Extracted RGB channels from tensor", module="UltramixUpscaler")
+                
                 img_tensor = img_tensor.unsqueeze(0).to(self.device) / 255.0
+                logger.log(f"Normalized tensor shape: {img_tensor.shape}, value range: {img_tensor.min():.2f}-{img_tensor.max():.2f}", 
+                          module="UltramixUpscaler")
 
                 # Process with model
                 with torch.no_grad():
                     output = self.model(img_tensor)
+                    logger.log(f"Model output tensor shape: {output.shape}, value range: {output.min():.2f}-{output.max():.2f}", 
+                             module="UltramixUpscaler")
                 
                 # Convert back to PIL
                 output = output.squeeze().float().cpu().clamp_(0, 1).numpy()
+                logger.log(f"Post-process numpy array shape: {output.shape}, value range: {output.min():.2f}-{output.max():.2f}", 
+                          module="UltramixUpscaler")
+                
                 output = (output.transpose(1, 2, 0) * 255.0).round().astype(np.uint8)
+                logger.log(f"Final numpy array shape: {output.shape}, dtype: {output.dtype}, value range: {output.min()}-{output.max()}", 
+                          module="UltramixUpscaler")
+                
                 upscaled = Image.fromarray(output)
+                logger.log(f"Converted to PIL Image: mode={upscaled.mode}, size={upscaled.size}", 
+                          module="UltramixUpscaler")
                 
                 # Resize to exact target size if needed
                 if upscaled.size != (target_size, target_size):
                     upscaled = upscaled.resize((target_size, target_size), Image.Resampling.LANCZOS)
+                    logger.log(f"Resized to target size: {upscaled.size}", module="UltramixUpscaler")
                 
                 return upscaled
                 
             # Fallback to Lanczos
+            logger.log("No model available, using Lanczos upscaling", module="UltramixUpscaler")
             return image.resize((target_size, target_size), Image.Resampling.LANCZOS)
             
         except Exception as e:
-            print(f"Upscaling failed: {str(e)}")
+            logger.log(f"Upscaling failed: {str(e)}", level="ERROR", module="UltramixUpscaler")
             return image.resize((target_size, target_size), Image.Resampling.NEAREST)
