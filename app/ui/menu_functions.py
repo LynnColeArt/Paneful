@@ -45,7 +45,8 @@ def display_random_assembly_menu():
     print("\nRandom Assembly Options")
     print("1. Basic Random Assembly")
     print("2. Create Dadaist Collage")
-    print("3. Back to Project Menu")
+    print("3. Multi-scale Assembly")
+    print("4. Back to Project Menu")
     return input("Select an option: ")
 
 def handle_random_assembly_menu(project_path):
@@ -68,7 +69,13 @@ def handle_random_assembly_menu(project_path):
                 dictionary_path = select_dictionary()
                 create_dadaist_collage_with_words(project_path, word_count, dictionary_path)
                 
-            elif choice == '3':  # Back to Project Menu
+            elif choice == '3':  # Multi-scale Assembly
+                run_number = int(input("How many variants to generate? (default: 1) ") or "1")
+                assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
+                assembler.set_multi_scale_strategy(project_path)  # Set up multi-scale mode
+                assembler.assemble(strategy='multi-scale', run_number=run_number)
+                
+            elif choice == '4':  # Back to Project Menu
                 break
                 
         except KeyboardInterrupt:
@@ -86,7 +93,11 @@ def handle_project_menu(project_path):
             choice = display_project_menu(project_config['name'])
             
             if choice == '1':  # Slice Image
-                grid_size = int(input("Enter grid size (e.g., 10 for 10x10 grid): "))
+                grid_input = input("Enter grid size (press Enter for default 10x10): ").strip()
+                grid_size = int(grid_input) if grid_input else 10
+                if grid_size < 1:
+                    print("Grid size must be at least 1. Using default size of 10.")
+                    grid_size = 10
                 slice_and_save(project_path, grid_size)
                 
             elif choice == '2':  # Fix/Restore Tiles
@@ -124,6 +135,9 @@ def handle_main_menu(settings):
                 
             elif choice == '2':  # List Projects
                 projects = scan_for_projects(projects_dir)
+                if not projects:
+                    continue
+                    
                 project_choice = display_project_list(projects)
                 
                 if project_choice.isdigit() and 1 <= int(project_choice) <= len(projects):

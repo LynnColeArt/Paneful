@@ -4,6 +4,7 @@ import os
 import cv2
 import numpy as np
 from PIL import Image, ImageFilter, ImageEnhance
+from tqdm import tqdm
 from .preprocessor import preprocess_image
 
 def enhance_piece(pil_piece, target_size, quality_level='high'):
@@ -101,8 +102,8 @@ def create_grid_slices(image_path, grid_size, project_config=None):
         return None, None
 
 def slice_and_save(project_path, grid_size):
-    """Slice images and save to appropriate directories."""
-    print(f"\nStarting slice_and_save with project_path: {project_path}, grid_size: {grid_size}")
+    """Slice images and save to appropriate directories with progress bars."""
+    print(f"\nInitializing slicing operation...")
     
     base_image_dir = os.path.join(project_path, "base-image")
     base_tiles_dir = os.path.join(project_path, "base-tiles")
@@ -113,8 +114,7 @@ def slice_and_save(project_path, grid_size):
         from ..program_functions import load_project_config
         project_config = load_project_config(project_path)
         target_size = project_config.get('upscale_size', 1024)
-        quality_level = project_config.get('quality_level', 'high')  # New config option
-        print(f"Target size: {target_size}, Quality level: {quality_level}")
+        quality_level = project_config.get('quality_level', 'high')
     except Exception as e:
         print(f"Warning: Could not load project config: {e}")
         target_size = 1024
@@ -124,88 +124,77 @@ def slice_and_save(project_path, grid_size):
     for directory in [base_tiles_dir, mask_directory]:
         os.makedirs(directory, exist_ok=True)
 
-    # Process each image in base-image directory
-    print(f"\nScanning directory: {base_image_dir}")
+    # Get list of image files
     supported_formats = ('.png', '.jpg', '.jpeg', '.bmp', '.heic', '.heif', '.webp', '.tiff')
+    image_files = [f for f in os.listdir(base_image_dir) if f.lower().endswith(supported_formats)]
     
-    # List and filter files
-    files = os.listdir(base_image_dir)
-    image_files = [f for f in files if f.lower().endswith(supported_formats)]
-    print(f"\nFound {len(image_files)} supported image files")
+    if not image_files:
+        print("No supported image files found.")
+        return
 
-    # Process supported files
-    for filename in image_files:
-        print(f"\nProcessing file: {filename}")
+    # Process each image with outer progress bar
+    for filename in tqdm(image_files, desc="Processing images", unit="image"):
         image_path = os.path.join(base_image_dir, filename)
         padded_image, piece_size = create_grid_slices(image_path, grid_size)
         
         if padded_image is None or piece_size is None:
-            print(f"Skipping failed image: {filename}")
             continue
             
         height, width = padded_image.shape[:2]
-        print(f"Processing grid: {width}x{height} in {piece_size}px pieces")
-
-        # Process tiles
         total_pieces = (height // piece_size) * (width // piece_size)
-        processed_pieces = 0
-        
-        for row in range(0, height, piece_size):
-            for col in range(0, width, piece_size):
-                piece = padded_image[row:row + piece_size, col:col + piece_size]
-                
-                if piece.shape[0] == piece_size and piece.shape[1] == piece_size:
-                    piece_filename = f"{row // piece_size}_{col // piece_size}.png"
-                    processed_pieces += 1
-                    print(f"Processing piece {processed_pieces}/{total_pieces}: {piece_filename}")
+
+        # Create piece processing progress bar
+        with tqdm(total=total_pieces, desc=f"Slicing {filename}", unit="piece") as pbar:
+            for row in range(0, height, piece_size):
+                for col in range(0, width, piece_size):
+                    piece = padded_image[row:row + piece_size, col:col + piece_size]
                     
-                    try:
-                        if target_size and target_size != piece_size:
-                            # Convert BGR to RGB for PIL
-                            piece_rgb = cv2.cvtColor(piece, cv2.COLOR_BGR2RGB)
-                            pil_piece = Image.fromarray(piece_rgb)
-                            
-                            # Enhanced upscaling
-                            enhanced_piece = enhance_piece(pil_piece, target_size, quality_level)
-                            
-                            # Convert back to BGR for saving
-                            enhanced_array = np.array(enhanced_piece)
-                            piece_bgr = cv2.cvtColor(enhanced_array, cv2.COLOR_RGB2BGR)
-                            out_path = os.path.join(base_tiles_dir, piece_filename)
-                            cv2.imwrite(out_path, piece_bgr)
-                        else:
-                            # Save original size if no upscaling needed
+                    if piece.shape[0] == piece_size and piece.shape[1] == piece_size:
+                        piece_filename = f"{row // piece_size}_{col // piece_size}.png"
+                        
+                        try:
+                            if target_size and target_size != piece_size:
+                                piece_rgb = cv2.cvtColor(piece, cv2.COLOR_BGR2RGB)
+                                pil_piece = Image.fromarray(piece_rgb)
+                                
+                                # Enhanced upscaling
+                                enhanced_piece = enhance_piece(pil_piece, target_size, quality_level)
+                                
+                                enhanced_array = np.array(enhanced_piece)
+                                piece_bgr = cv2.cvtColor(enhanced_array, cv2.COLOR_RGB2BGR)
+                                out_path = os.path.join(base_tiles_dir, piece_filename)
+                                cv2.imwrite(out_path, piece_bgr)
+                            else:
+                                out_path = os.path.join(base_tiles_dir, piece_filename)
+                                cv2.imwrite(out_path, piece)
+                                
+                        except Exception as e:
+                            tqdm.write(f"Error processing piece {piece_filename}: {e}")
                             out_path = os.path.join(base_tiles_dir, piece_filename)
                             cv2.imwrite(out_path, piece)
                             
-                        print(f"Saved piece to: {out_path}")
-                            
-                    except Exception as e:
-                        print(f"Error processing piece {piece_filename}: {e}")
-                        # Fallback to saving original piece if processing fails
-                        out_path = os.path.join(base_tiles_dir, piece_filename)
-                        cv2.imwrite(out_path, piece)
+                        pbar.update(1)
 
-        print(f"Finished processing {processed_pieces} pieces")
+    # Create masks with progress bar
+    print("\nGenerating masks...")
+    percentages = [50, 60, 70, 80, 90]
+    with tqdm(total=len(percentages), desc="Creating masks", unit="mask") as pbar:
+        for percentage in percentages:
+            create_single_mask(mask_directory, height, width, piece_size, percentage)
+            pbar.update(1)
 
-    # Create masks
-    create_masks(mask_directory, height, width, piece_size)
+def create_single_mask(mask_directory, height, width, piece_size, percentage):
+    """Create a single mask file for the given percentage."""
+    mask = np.zeros((height, width), dtype=np.uint8)
+    visible_size = int(piece_size * percentage / 100)
+    border_size = (piece_size - visible_size) // 2
 
-def create_masks(mask_directory, height, width, piece_size, percentages=[50, 60, 70, 80, 90]):
-    """Create mask files for different visibility percentages."""
-    print(f"Creating masks in: {mask_directory}")
-    for percentage in percentages:
-        mask = np.zeros((height, width), dtype=np.uint8)
-        visible_size = int(piece_size * percentage / 100)
-        border_size = (piece_size - visible_size) // 2
+    for row in range(0, height, piece_size):
+        for col in range(0, width, piece_size):
+            mask[row:row + border_size, col:col + piece_size] = 255
+            mask[row + piece_size - border_size:row + piece_size, col:col + piece_size] = 255
+            mask[row:row + piece_size, col:col + border_size] = 255
+            mask[row:row + piece_size, col + piece_size - border_size:col + piece_size] = 255
 
-        for row in range(0, height, piece_size):
-            for col in range(0, width, piece_size):
-                mask[row:row + border_size, col:col + piece_size] = 255
-                mask[row + piece_size - border_size:row + piece_size, col:col + piece_size] = 255
-                mask[row:row + piece_size, col:col + border_size] = 255
-                mask[row:row + piece_size, col + piece_size - border_size:col + piece_size] = 255
-
-        mask_path = os.path.join(mask_directory, f"Mask_{percentage}.png")
-        cv2.imwrite(mask_path, mask)
-        print(f"Created mask {percentage}%: {mask_path}")
+    mask_path = os.path.join(mask_directory, f"Mask_{percentage}.png")
+    cv2.imwrite(mask_path, mask)

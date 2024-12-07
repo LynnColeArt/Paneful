@@ -6,6 +6,8 @@ def load_settings():
     # Get root directory (two levels up from this file)
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     
+    VALID_QUALITY_LEVELS = {'normal', 'high', 'ultra'}
+    
     settings = {
         'projects_dir': 'projects',  # Default relative to root
         'rendered_tile_size': 1024,
@@ -19,6 +21,10 @@ def load_settings():
             for line in f:
                 if line.strip() and not line.startswith('#'):
                     key, value = line.strip().split('=')
+                    if key == 'quality_level':
+                        if value not in VALID_QUALITY_LEVELS:
+                            print(f"Warning: Invalid quality_level '{value}', using 'ultra'")
+                            value = 'ultra'
                     settings[key] = int(value) if value.isdigit() else value
                     
         # Convert projects_dir to absolute path
@@ -32,4 +38,5 @@ def load_settings():
         print("Invalid settings file format, using defaults")
         
     print(f"Using projects directory: {settings['projects_dir']}")
+    print(f"Quality level set to: {settings['quality_level']}")
     return settings
