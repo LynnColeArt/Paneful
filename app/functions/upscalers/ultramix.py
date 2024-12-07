@@ -188,7 +188,7 @@ class UltramixUpscaler(BaseUpscaler):
             traceback.print_exc()
             self.model = None
 
-    def _upscale_implementation(self, image: Image.Image, target_size: int) -> Image.Image:
+    def upscale(self, image: Image.Image, target_size: int) -> Image.Image:
         try:
             if image.mode != 'RGBA':
                 image = image.convert('RGBA')
