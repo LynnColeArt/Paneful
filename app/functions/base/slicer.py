@@ -7,6 +7,7 @@ from PIL import Image, ImageFilter, ImageEnhance
 from tqdm import tqdm
 from .preprocessor import preprocess_image
 from ..controlnet.canny import CannyMapGenerator
+from ..controlnet.normals import NormalMapGenerator
 
 def enhance_piece(pil_piece, target_size, quality_level='high'):
     """
@@ -133,8 +134,9 @@ def slice_and_save(project_path, grid_size):
         print("No supported image files found.")
         return
 
-    # Initialize controlnet map generator
+    # Initialize controlnet map generators
     canny_gen = CannyMapGenerator(project_path)
+    normal_gen = NormalMapGenerator(project_path)
 
     # Process each image with outer progress bar
     for filename in tqdm(image_files, desc="Processing images", unit="image"):
@@ -172,7 +174,8 @@ def slice_and_save(project_path, grid_size):
                                 # Generate controlnet maps from enhanced piece
                                 try:
                                     canny_gen.generate_map(out_path)
-                                    # We'll add depth and normals here later
+                                    normal_gen.generate_map(out_path)
+                                    # We'll add depth here later
                                 except Exception as e:
                                     tqdm.write(f"Warning: Controlnet map generation failed for {piece_filename}: {e}")
                                     

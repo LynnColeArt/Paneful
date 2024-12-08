@@ -9,6 +9,7 @@ class NormalMapGenerator(BaseMapGenerator):
     """Generates surface normal maps for controlnet input."""
     
     def __init__(self, project_path):
+        """Initialize normal map generator with project path."""
         super().__init__(project_path)
         self.map_type = "normals"
         
@@ -25,27 +26,25 @@ class NormalMapGenerator(BaseMapGenerator):
                               level="ERROR", module="NormalMap")
                 return None
             
-            self.logger.log(f"Image shape: {image.shape}, dtype: {image.dtype}", 
-                          module="NormalMap")
-
             # Convert to grayscale for processing
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).astype(np.float32)
             
-            # Calculate gradients
-            sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
-            sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+            # Calculate gradients and invert
+            sobelx = -cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=5)
+            sobely = -cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=5)
             
-            # Normalize gradient values
-            sobelx = cv2.normalize(sobelx, None, 0, 255, cv2.NORM_MINMAX)
-            sobely = cv2.normalize(sobely, None, 0, 255, cv2.NORM_MINMAX)
+            # Normalize gradients to [-1, 1]
+            magnitude = np.sqrt(sobelx**2 + sobely**2 + 1)
+            sobelx = sobelx / magnitude
+            sobely = sobely / magnitude
+            sobelz = 1 / magnitude
             
-            # Create normal map
+            # Convert to RGB normal map format [0, 255]
             normal_map = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
-            normal_map[..., 0] = sobelx  # X component (red channel)
-            normal_map[..., 1] = sobely  # Y component (green channel)
-            normal_map[..., 2] = 255     # Z component (blue channel)
+            normal_map[..., 0] = np.uint8((sobelx + 1) * 127.5)  # R
+            normal_map[..., 1] = np.uint8((sobely + 1) * 127.5)  # G
+            normal_map[..., 2] = np.uint8(sobelz * 255)          # B
             
-            # Save the normal map
             output_dir = self.ensure_output_directory(self.map_type)
             base_name = os.path.basename(image_path)
             output_path = os.path.join(output_dir, f"normal_{base_name}")
@@ -58,5 +57,5 @@ class NormalMapGenerator(BaseMapGenerator):
         except Exception as e:
             self.logger.log(f"Error generating normal map: {e}", 
                           level="ERROR", module="NormalMap")
-        
+            
         return None
