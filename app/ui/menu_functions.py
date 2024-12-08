@@ -73,7 +73,13 @@ def handle_random_assembly_menu(project_path):
                 word_count = int(input("How many words to place (default 10)? ") or "10")
                 dictionary_path = select_dictionary()
                 create_dadaist_collage_with_words(project_path, word_count, dictionary_path)
-
+                
+            elif choice == '3':  # Multi-scale Assembly
+                run_number = int(input("How many variants to generate? (default: 1) ") or "1")
+                assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
+                assembler.set_multi_scale_strategy(project_path)  # Set up multi-scale mode
+                assembler.assemble(strategy='multi-scale', run_number=run_number)
+                
             elif choice == '4':  # Subdivide Tiles for Multi-Scale Assembly
                 try:
                     print("Starting processing of all variations...")
@@ -82,12 +88,6 @@ def handle_random_assembly_menu(project_path):
                 except Exception as e:
                     logging.error(f"Error processing variations: {e}")
                     print("Error occurred during tile subdivision. Please check the logs for more information.")
-                
-            elif choice == '4':  # Multi-scale Assembly
-                run_number = int(input("How many variants to generate? (default: 1) ") or "1")
-                assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
-                assembler.set_multi_scale_strategy(project_path)  # Set up multi-scale mode
-                assembler.assemble(strategy='multi-scale', run_number=run_number)
                 
             elif choice == '0':  # Back to Project Menu
                 break
@@ -133,7 +133,7 @@ def handle_project_menu(project_path):
             elif choice == '4':  # Random Assembly Options
                 handle_random_assembly_menu(project_path)
                 
-            elif choice == '4':  # Reset Project Config
+            elif choice == '5':  # Reset Project Config
                 if reset_project_config(project_path):
                     print("Project configuration has been reset to defaults")
                 
