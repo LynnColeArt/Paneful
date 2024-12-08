@@ -8,7 +8,7 @@ class TileSubdivider:
         self.output_dir = output_dir
         self.tile_naming = TileNaming()
 
-    def subdivide_tiles(self, tiles_dir, grid_sizes=[5, 10, 15, 20]):
+    def subdivide_tiles(self, tiles_dir, grid_sizes=[2, 3, 5, 8, 10]): #this is the important one.
         print(f"Starting subdivision process in: {tiles_dir}")
         for grid_size in grid_sizes:
             self._create_output_directory(grid_size)
