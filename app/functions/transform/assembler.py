@@ -151,7 +151,7 @@ class Assembler:
     def _process_multi_scale_pieces(self, canvas, base_path, grid_manager, valid_subdirs, assembly_data):
         """Process pieces for multi-scale assembly."""
         height, width = grid_manager.piece_dimensions
-        subdivision_scales = ["5x5", "10x10", "15x15", "20x20"]
+        subdivision_scales = ["2x2","3x3","5x5","8x8","10x10"]
         
         for piece in sorted(os.listdir(base_path)):
             if not piece.endswith('.png'):
