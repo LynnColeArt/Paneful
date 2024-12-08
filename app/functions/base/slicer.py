@@ -8,6 +8,7 @@ from tqdm import tqdm
 from .preprocessor import preprocess_image
 from ..controlnet.canny import CannyMapGenerator
 from ..controlnet.normals import NormalMapGenerator
+from ..controlnet.depth import DepthMapGenerator
 
 def enhance_piece(pil_piece, target_size, quality_level='high'):
     """
@@ -135,8 +136,14 @@ def slice_and_save(project_path, grid_size):
         return
 
     # Initialize controlnet map generators
-    canny_gen = CannyMapGenerator(project_path)
-    normal_gen = NormalMapGenerator(project_path)
+    map_generators = {}
+    try:
+        map_generators['canny'] = CannyMapGenerator(project_path)
+        map_generators['depth'] = DepthMapGenerator(project_path)
+        map_generators['normal'] = NormalMapGenerator(project_path)
+        print("Successfully initialized controlnet map generators")
+    except Exception as e:
+        print(f"Warning: Could not initialize map generators: {e}")
 
     # Process each image with outer progress bar
     for filename in tqdm(image_files, desc="Processing images", unit="image"):
@@ -172,12 +179,12 @@ def slice_and_save(project_path, grid_size):
                                 cv2.imwrite(out_path, piece_bgr)
 
                                 # Generate controlnet maps from enhanced piece
-                                try:
-                                    canny_gen.generate_map(out_path)
-                                    normal_gen.generate_map(out_path)
-                                    # We'll add depth here later
-                                except Exception as e:
-                                    tqdm.write(f"Warning: Controlnet map generation failed for {piece_filename}: {e}")
+                                if map_generators:
+                                    for map_type, generator in map_generators.items():
+                                        try:
+                                            generator.generate_map(out_path)
+                                        except Exception as e:
+                                            tqdm.write(f"Warning: {map_type} map generation failed for {piece_filename}: {e}")
                                     
                             else:
                                 out_path = os.path.join(base_tiles_dir, piece_filename)
