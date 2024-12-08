@@ -1,4 +1,6 @@
 import os
+import logging
+from ..functions.transform.subdivision_functions import process_all_variations
 from ..functions.transform import Assembler
 from ..functions.program_functions import (
     create_new_project,
@@ -8,6 +10,8 @@ from ..functions.program_functions import (
     reset_project_config
 )
 from ..functions.base.slicer import slice_and_save
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
 def display_main_menu():
     """Display main menu and get user choice."""
@@ -22,9 +26,10 @@ def display_project_menu(project_name):
     print(f"\nProject: {project_name}")
     print("1. Slice Image")
     print("2. Fix/Restore Tiles")
-    print("3. Random Assembly Options")
-    print("4. Reset Project Config")
-    print("5. Back to Main Menu")
+    print("3. Subdivide Tiles for Multi-Scale Assembly")
+    print("4. Random Assembly Options")
+    print("5. Reset Project Config")
+    print("0. Back to Main Menu")
     return input("Select an option: ")
 
 def display_project_list(projects):
@@ -68,20 +73,30 @@ def handle_random_assembly_menu(project_path):
                 word_count = int(input("How many words to place (default 10)? ") or "10")
                 dictionary_path = select_dictionary()
                 create_dadaist_collage_with_words(project_path, word_count, dictionary_path)
+
+            elif choice == '4':  # Subdivide Tiles for Multi-Scale Assembly
+                try:
+                    print("Starting processing of all variations...")
+                    process_all_variations(project_path)
+                    print("Successfully processed all variations.")
+                except Exception as e:
+                    logging.error(f"Error processing variations: {e}")
+                    print("Error occurred during tile subdivision. Please check the logs for more information.")
                 
-            elif choice == '3':  # Multi-scale Assembly
+            elif choice == '4':  # Multi-scale Assembly
                 run_number = int(input("How many variants to generate? (default: 1) ") or "1")
                 assembler = Assembler(project_name, rendered_tiles_dir, collage_out_dir)
                 assembler.set_multi_scale_strategy(project_path)  # Set up multi-scale mode
                 assembler.assemble(strategy='multi-scale', run_number=run_number)
                 
-            elif choice == '4':  # Back to Project Menu
+            elif choice == '0':  # Back to Project Menu
                 break
                 
         except KeyboardInterrupt:
             print('\nReturning to project menu...')
             break
         except Exception as e:
+            logging.error(f"Error in handle_random_assembly_menu: {e}")
             print(f"\nError: {e}")
             print("Returning to menu...")
 
@@ -106,7 +121,16 @@ def handle_project_menu(project_path):
                 assembler = Assembler(project_config['name'], rendered_tiles_dir, collage_out_dir)
                 assembler.assemble(strategy='exact')
                 
-            elif choice == '3':  # Random Assembly Options
+            elif choice == '3':  # Subdivide Tiles for Multi-Scale Assembly
+                try:
+                    print("Starting processing of all variations...")
+                    process_all_variations(project_path)
+                    print("Successfully processed all variations.")
+                except Exception as e:
+                    logging.error(f"Error processing variations: {e}")
+                    print("Error occurred during tile subdivision. Please check the logs for more information.")
+                
+            elif choice == '4':  # Random Assembly Options
                 handle_random_assembly_menu(project_path)
                 
             elif choice == '4':  # Reset Project Config
@@ -120,6 +144,7 @@ def handle_project_menu(project_path):
             print('\nReturning to main menu...')
             break
         except Exception as e:
+            logging.error(f"Error in handle_project_menu: {e}")
             print(f"\nError: {e}")
             print("Returning to menu...")
 
@@ -151,5 +176,6 @@ def handle_main_menu(settings):
             print('\nGracefully exiting Paneful...')
             break
         except Exception as e:
+            logging.error(f"Error in handle_main_menu: {e}")
             print(f"\nError: {e}")
             print("Returning to menu...")
