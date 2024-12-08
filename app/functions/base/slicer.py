@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image, ImageFilter, ImageEnhance
 from tqdm import tqdm
 from .preprocessor import preprocess_image
+from ..controlnet.canny import CannyMapGenerator
 
 def enhance_piece(pil_piece, target_size, quality_level='high'):
     """
@@ -132,6 +133,9 @@ def slice_and_save(project_path, grid_size):
         print("No supported image files found.")
         return
 
+    # Initialize controlnet map generator
+    canny_gen = CannyMapGenerator(project_path)
+
     # Process each image with outer progress bar
     for filename in tqdm(image_files, desc="Processing images", unit="image"):
         image_path = os.path.join(base_image_dir, filename)
@@ -164,6 +168,14 @@ def slice_and_save(project_path, grid_size):
                                 piece_bgr = cv2.cvtColor(enhanced_array, cv2.COLOR_RGB2BGR)
                                 out_path = os.path.join(base_tiles_dir, piece_filename)
                                 cv2.imwrite(out_path, piece_bgr)
+
+                                # Generate controlnet maps from enhanced piece
+                                try:
+                                    canny_gen.generate_map(out_path)
+                                    # We'll add depth and normals here later
+                                except Exception as e:
+                                    tqdm.write(f"Warning: Controlnet map generation failed for {piece_filename}: {e}")
+                                    
                             else:
                                 out_path = os.path.join(base_tiles_dir, piece_filename)
                                 cv2.imwrite(out_path, piece)
