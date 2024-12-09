@@ -28,7 +28,7 @@ class MultiScaleStrategy(TileSelectionStrategy):
             coords = self.tile_naming.parse_original_tile_name(piece_name)
             
             available_tiles = []
-            for scale in ["5x5", "10x10", "15x15", "20x20"]:
+            for scale in ["2x2","3x3","5x5","8x8","10x10"]:
                 grid_size = int(scale.split("x")[0])
                 scale_dir = os.path.join(
                     project_path, 

@@ -47,60 +47,68 @@ class Assembler:
         if not valid_subdirs:
             print("No valid tile directories found.")
             return
-
-        base_subdir = valid_subdirs[0]
-        base_path = os.path.join(self.rendered_tiles_dir, base_subdir)
-        print(f"Using {base_subdir} as base for {'multi-scale' if strategy == 'multi-scale' else 'random'} assemblies")
-        
-        try:
-            grid_manager = GridManager(base_path)
+            
+        if strategy == 'exact':
+            # Process each valid subdirectory for exact assemblies
+            for base_subdir in valid_subdirs:
+                try:
+                    self._process_single_assembly(base_subdir, strategy, 1)
+                    print(f"Created exact assembly for {base_subdir}")
+                except Exception as e:
+                    print(f"Error creating exact assembly for {base_subdir}: {e}")
+        else:
+            # For random/multi-scale, use first directory as base but pull from all
+            base_subdir = valid_subdirs[0]
+            print(f"Using {base_subdir} as base for {strategy} assemblies")
             
             for run in range(run_number):
                 try:
-                    canvas = grid_manager.create_canvas()
-                    assembly_data = {
-                        'project_name': self.project_name,
-                        'strategy': strategy,
-                        'run_number': run + 1,
-                        'base_directory': base_subdir,
-                        'grid_dimensions': grid_manager.grid_dimensions,
-                        'piece_dimensions': grid_manager.piece_dimensions,
-                        'pieces': []
-                    }
-
-                    if strategy == 'multi-scale':
-                        self._process_multi_scale_pieces(
-                            canvas,
-                            base_path,
-                            grid_manager,
-                            valid_subdirs,
-                            assembly_data
-                        )
-                    else:
-                        self._process_pieces(
-                            canvas,
-                            base_path,
-                            grid_manager,
-                            valid_subdirs,
-                            assembly_data
-                        )
-                    
-                    self.output_manager.save_assembly(
-                        canvas, 
-                        base_subdir,
-                        strategy,
-                        run + 1,
-                        assembly_data
-                    )
-                    print(f"Created {'multi-scale' if strategy == 'multi-scale' else 'random'} assembly {run + 1} of {run_number}")
-                
+                    self._process_single_assembly(base_subdir, strategy, run + 1, valid_subdirs)
+                    print(f"Created {strategy} assembly {run + 1} of {run_number}")
                 except Exception as e:
-                    print(f"Error creating {'multi-scale' if strategy == 'multi-scale' else 'random'} assembly {run + 1}: {e}")
+                    print(f"Error creating {strategy} assembly {run + 1}: {e}")
                     continue
-                    
-        except Exception as e:
-            print(f"Error processing base directory {base_subdir}: {e}")
-            return
+
+    def _process_single_assembly(self, base_subdir, strategy, run_number, valid_subdirs=None):
+        """Process a single assembly operation."""
+        base_path = os.path.join(self.rendered_tiles_dir, base_subdir)
+        grid_manager = GridManager(base_path)
+        canvas = grid_manager.create_canvas()
+        
+        assembly_data = {
+            'project_name': self.project_name,
+            'strategy': strategy,
+            'run_number': run_number,
+            'base_directory': base_subdir,
+            'grid_dimensions': grid_manager.grid_dimensions,
+            'piece_dimensions': grid_manager.piece_dimensions,
+            'pieces': []
+        }
+
+        if strategy == 'multi-scale':
+            self._process_multi_scale_pieces(
+                canvas,
+                base_path,
+                grid_manager,
+                valid_subdirs,
+                assembly_data
+            )
+        else:
+            self._process_pieces(
+                canvas,
+                base_path,
+                grid_manager,
+                valid_subdirs if strategy == 'random' else [base_subdir],
+                assembly_data
+            )
+        
+        self.output_manager.save_assembly(
+            canvas, 
+            base_subdir,
+            strategy,
+            run_number,
+            assembly_data
+        )
 
     def _process_pieces(self, canvas, base_path, grid_manager, valid_subdirs, assembly_data):
         """Process regular (non-multi-scale) pieces."""
@@ -151,7 +159,7 @@ class Assembler:
     def _process_multi_scale_pieces(self, canvas, base_path, grid_manager, valid_subdirs, assembly_data):
         """Process pieces for multi-scale assembly."""
         height, width = grid_manager.piece_dimensions
-        subdivision_scales = ["5x5", "10x10", "15x15", "20x20"]
+        subdivision_scales = ["2x2","3x3","5x5","8x8","10x10"]
         
         for piece in sorted(os.listdir(base_path)):
             if not piece.endswith('.png'):

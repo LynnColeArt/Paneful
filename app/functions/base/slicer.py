@@ -6,6 +6,9 @@ import numpy as np
 from PIL import Image, ImageFilter, ImageEnhance
 from tqdm import tqdm
 from .preprocessor import preprocess_image
+from ..controlnet.canny import CannyMapGenerator
+from ..controlnet.normals import NormalMapGenerator
+from ..controlnet.depth import DepthMapGenerator
 
 def enhance_piece(pil_piece, target_size, quality_level='high'):
     """
@@ -132,6 +135,16 @@ def slice_and_save(project_path, grid_size):
         print("No supported image files found.")
         return
 
+    # Initialize controlnet map generators
+    map_generators = {}
+    try:
+        map_generators['canny'] = CannyMapGenerator(project_path)
+        map_generators['depth'] = DepthMapGenerator(project_path)
+        map_generators['normal'] = NormalMapGenerator(project_path)
+        print("Successfully initialized controlnet map generators")
+    except Exception as e:
+        print(f"Warning: Could not initialize map generators: {e}")
+
     # Process each image with outer progress bar
     for filename in tqdm(image_files, desc="Processing images", unit="image"):
         image_path = os.path.join(base_image_dir, filename)
@@ -164,6 +177,15 @@ def slice_and_save(project_path, grid_size):
                                 piece_bgr = cv2.cvtColor(enhanced_array, cv2.COLOR_RGB2BGR)
                                 out_path = os.path.join(base_tiles_dir, piece_filename)
                                 cv2.imwrite(out_path, piece_bgr)
+
+                                # Generate controlnet maps from enhanced piece
+                                if map_generators:
+                                    for map_type, generator in map_generators.items():
+                                        try:
+                                            generator.generate_map(out_path)
+                                        except Exception as e:
+                                            tqdm.write(f"Warning: {map_type} map generation failed for {piece_filename}: {e}")
+                                    
                             else:
                                 out_path = os.path.join(base_tiles_dir, piece_filename)
                                 cv2.imwrite(out_path, piece)

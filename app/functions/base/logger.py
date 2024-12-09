@@ -40,7 +40,7 @@ class Logger:
 
     def log(self, message, level="INFO", module=None):
         """Write a message to the log file."""
-        print(f"Logger.log called with message: {message}")  # Debug print
+        #print(f"Logger.log called with message: {message}")  # Debug print
         try:
             if not self.log_path:
                 print(f"Warning: No log file available - {level}: {message}")
