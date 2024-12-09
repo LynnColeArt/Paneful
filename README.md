@@ -1,13 +1,12 @@
-
 # Paneful
 
 A toolkit for making layered collages from a single image. Because sometimes you just want to slice up a perfectly good image and put it back together wrong. 🎨✂️
 
 ## About
 
-Paneful is a standalone tool for creators who want to push art to the limits of credulity. It’s not about making things easy—it’s about making things *possible.* With Paneful, you can take a single image, slice it into tiles, and transform it into something strikingly impossible through techniques that no other tool can replicate.  
+Paneful is a standalone tool for creators who want to push art to the limits of credulity. It's not about making things easy—it's about making things *possible.* With Paneful, you can take a single image, slice it into tiles, and transform it into something strikingly impossible through techniques that no other tool can replicate.  
 
-The app thrives on chaos and creativity, embracing the unpredictable fun of AI-assisted workflows. Whether you’re crafting surreal collages, exploring abstract compositions, or just seeing how far you can stretch an image, Paneful opens up a world of possibilities.
+The app thrives on chaos and creativity, embracing the unpredictable fun of AI-assisted workflows. Whether you're crafting surreal collages, exploring abstract compositions, or just seeing how far you can stretch an image, Paneful opens up a world of possibilities.
 
 ## How It Works
 
@@ -15,7 +14,7 @@ The app thrives on chaos and creativity, embracing the unpredictable fun of AI-a
    - Drop your image into the project directory.
    - Use Paneful to slice the image into tiles.
 
-2. **Generate Variations** *(Optional)*:
+2. **Generate Variations**:
    - Take those slices and process them through stable diffusion (recommended: 8 variations per tile).
    - This step enhances creative possibilities and introduces unpredictable textures and details.
 
@@ -73,6 +72,13 @@ project/
 ```
 
 ## Changelog
+
+### 0.0.1.12
+- Implemented multi-threaded tile subdivision for faster processing
+- Enhanced error handling and logging throughout the app
+- Improved robustness of assembler with invalid tile directory handling
+- Streamlined project configuration management
+- Updated documentation and code comments for clarity
 
 ### 0.0.1.11
 - Replaced complex upscaler with efficient Lanczos implementation
